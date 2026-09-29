@@ -16,11 +16,26 @@ This document describes the architecture, component responsibilities, data model
 
 ### Technology choices
 
-- **Language:** TypeScript, for a typed config model and safer refactors.
-- **UI:** A lightweight component approach for the popup and options page. Preact (React-compatible, tiny) is the default choice; plain TS + DOM is an acceptable fallback. The framework choice is isolated to the UI layer and does not affect the core engines.
-- **Bundler:** Vite (or esbuild) producing per-target builds.
-- **Cross-browser API shim:** `webextension-polyfill` so extension APIs are promise-based and uniform across Chrome and Firefox.
+The stack deliberately builds on conventions from the author's existing TabShade extension where they fit, and adds a build toolchain because Fillibuster's management UI is substantially more complex (an ordered, reorderable list of typed step sub-forms, import/export dialogs, encryption settings) than TabShade's slider-and-checkboxes popup.
+
+- **Language:** TypeScript, for a typed config model and safer refactors. The config schema is the heart of the app (it is validated, imported/exported, and encrypted), so compile-time checking earns its keep.
+- **UI:** Preact + hooks with JSX (React-compatible, ~3KB) for the popup and options page. The author already knows React, so the API is familiar. The framework is isolated to the UI layer and does not touch the core engines.
+- **Bundler:** Vite with `@preact/preset-vite`, producing per-target builds into `dist/firefox/` and `dist/chrome/`.
+- **Cross-browser API shim:** `webextension-polyfill` so extension APIs are promise-based and uniform across Chrome and Firefox (same choice as TabShade).
 - **Crypto:** Web Crypto API (`crypto.subtle`) — PBKDF2 for key derivation, AES-GCM for authenticated encryption. No third-party crypto library.
+- **Tests:** Vitest (same as TabShade).
+- **Packaging:** `web-ext` for the Firefox artifact; the Vite Chrome output zipped for the Chrome Web Store (same tooling family as TabShade).
+
+**Reused from TabShade:** `webextension-polyfill`, Vitest, `web-ext`, the two-manifest pattern (Firefox-native `browser` API + a Chrome service-worker manifest), and a browser-free shared core module for testable logic. **New for Fillibuster:** TypeScript, Preact, and a Vite build — justified by the heavier UI.
+
+### Distribution & store review
+
+Because the distributed artifact is built and minified, store submission has one notable obligation:
+
+- **addons.mozilla.org (AMO):** requires uploading the **source code** alongside the built package, plus clear build instructions a reviewer can reproduce (`npm install`, `npm run build:firefox`). Minification is permitted; **obfuscation is not**. Vite minifies rather than obfuscates, so builds are compliant. The repo README will carry an AMO-facing "How to build" section.
+- **Chrome Web Store:** does not require source upload, but disallows obfuscated code; minified Vite output is fine.
+
+Reproducible-from-source builds are therefore a design constraint: the toolchain stays standard (Vite, Preact, TypeScript) and the build is a single documented command per target.
 
 ## Architecture
 
@@ -270,22 +285,26 @@ graph LR
 
 ## Build & Packaging (Req 1.4)
 
-- **Source layout**
+- **Source layout** (TypeScript source under `src/`, Preact for UI)
   ```
   src/
-    background/     service worker + match engine glue
-    content/        capture + fill executor
-    popup/          popup UI
-    options/        management UI
-    core/           pure modules: matching, schema, crypto, import/export (unit-testable)
-    platform/       webextension-polyfill wrapper + per-browser adapters
+    background/     service worker + match engine glue (TS)
+    content/        capture + fill executor (TS, no framework — runs in page)
+    popup/          popup UI (Preact + TSX)
+    options/        management UI (Preact + TSX)
+    core/           pure modules: matching, schema + validation, crypto, import/export (TS, browser-free, unit-testable)
+    platform/       webextension-polyfill wrapper + any per-browser adapters
   manifest/
     manifest.base.json
-    manifest.chrome.json
-    manifest.firefox.json
+    manifest.chrome.json     # service worker background
+    manifest.firefox.json    # background.scripts event page + gecko settings
+  scripts/
+    build.mjs               # merges manifests, orchestrates per-target Vite builds, zips
   ```
-- **Build** merges the base manifest with the per-target fragment and bundles TypeScript into `dist/chrome/` and `dist/firefox/`. Scripts: `build:chrome`, `build:firefox`, `build` (both), plus `package` to zip each `dist/*` for store submission / `web-ext` for Firefox.
-- **`core/` is browser-free** so matching, schema validation, import/export, and crypto can be unit-tested in Node without a browser harness.
+- **Vite** builds the TS/TSX into `dist/firefox/` and `dist/chrome/`. A small Node build script (in the spirit of TabShade's `build-chrome.mjs`) merges `manifest.base.json` with the per-target manifest fragment and writes the correct `manifest.json` into each `dist/*`, wiring the `webextension-polyfill` per target. npm scripts: `build:firefox`, `build:chrome`, `build` (both), `package` (zip each `dist/*`; `web-ext build` for Firefox), plus `dev` for a watch build to load unpacked.
+- **Firefox is the API baseline** (native promise-based `browser` API); the Chrome target layers in the service-worker manifest and polyfill, mirroring TabShade's approach.
+- **`core/` is browser-free** so matching, schema validation, import/export, and crypto can be unit-tested in Node (Vitest) without a browser harness.
+- **AMO reproducibility:** `npm install && npm run build:firefox` reproduces the Firefox artifact from source; documented in the README for reviewers (see Distribution & store review). Vite output is minified, not obfuscated.
 
 ## Error Handling & Feedback (Req 9)
 
@@ -296,8 +315,11 @@ graph LR
 
 ## Testing Strategy
 
-- **Unit tests (`core/`)**: matching rules (exact/prefix/glob edge cases), schema validation, import/export round-trips and rejection of malformed/incompatible payloads, and the crypto round-trip (encrypt→decrypt, wrong-passphrase rejection, tamper detection).
+Vitest throughout (same runner as TabShade).
+
+- **Unit tests (`core/`)**: matching rules (exact/prefix/glob edge cases), schema validation, import/export round-trips and rejection of malformed/incompatible payloads, and the crypto round-trip (encrypt→decrypt, wrong-passphrase rejection, tamper detection). These run in Node with no browser.
 - **DOM tests**: fill executor against a jsdom fixture per control type, asserting values set and `input`/`change` events dispatched, plus the "element not found" path under both error strategies.
+- **Component tests (optional)**: key Preact components (step editor, config list) via `@testing-library/preact` under Vitest's jsdom environment, for the conditional step-form behavior.
 - **Manual/integration**: load unpacked in Chrome and Firefox; verify badge on match, popup listing, a real fill on a sample form (including a states `<select>`), capture flow, export/import between profiles, and the encryption enable/unlock/wrong-passphrase flows.
 
 ## Requirements Coverage
