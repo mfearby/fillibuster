@@ -1,0 +1,386 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Scaffold the project and toolchain": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683766642
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683777968
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790684570682
+      }
+    ],
+    "2.1 Write the TypeScript types for the data model": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767062
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790684580562
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790684824100
+      }
+    ],
+    "2.2 Implement runtime validation for configs and imports": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767095
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790684835483
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685075070
+      }
+    ],
+    "3. Implement the matching engine in `core/`": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767120
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685086829
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685238382
+      }
+    ],
+    "4. Implement import/export in `core/`": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767148
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685244349
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685437432
+      }
+    ],
+    "5.1 Key derivation and verifier": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767175
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685442205
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685638740
+      }
+    ],
+    "5.2 Encrypt/decrypt config steps": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767199
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685643751
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685828914
+      }
+    ],
+    "6.1 Cross-browser API wrapper": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767228
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685834081
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685958022
+      }
+    ],
+    "6.2 Storage repository over `storage.local` and `storage.session`": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767253
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685962930
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686349488
+      }
+    ],
+    "7. Implement the content-script fill executor": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767282
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686356671
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686716209
+      }
+    ],
+    "8. Implement the content-script capture": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767312
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686721168
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686934363
+      }
+    ],
+    "9. Wire the content-script entry and messaging": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767341
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686940413
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687255270
+      }
+    ],
+    "10.1 Match evaluation and toolbar badge": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767370
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687262264
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687521420
+      }
+    ],
+    "10.2 Orchestration message API for popup/options": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767403
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687526338
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687936063
+      }
+    ],
+    "11. Build the popup UI (Preact)": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767432
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687941959
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688192213
+      }
+    ],
+    "12.1 Config list and CRUD shell": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767486
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688198718
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688524360
+      }
+    ],
+    "12.2 Config editor with typed, reorderable step list": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767518
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688529670
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688881654
+      }
+    ],
+    "12.3 Capture-to-config flow": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767543
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790688888656
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790689529676
+      }
+    ],
+    "12.4 Import / export UI": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767568
+      },
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790689536038
+      }
+    ],
+    "12.5 Encryption settings UI": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767603
+      }
+    ],
+    "13.1 Author manifests": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767632
+      }
+    ],
+    "13.2 Build script and packaging": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767660
+      }
+    ],
+    "14. README with build and store-submission instructions": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767698
+      }
+    ],
+    "15. End-to-end verification pass": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790683767720
+      }
+    ],
+    "2. Define the config schema and runtime validation in `core/`": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685075099
+      }
+    ],
+    "5. Implement the encryption module in `core/`": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790685828940
+      }
+    ],
+    "6. Build the platform layer and storage repository": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790686349529
+      }
+    ],
+    "10. Implement the background service worker": [
+      {
+        "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
+        "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
+        "timestamp": 1790687936107
+      }
+    ]
+  }
+}

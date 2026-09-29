@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Fillibuster",
+  "version": "0.1.0",
+  "description": "Fill web forms from saved, reusable fill configs.",
+  "action": {
+    "default_title": "Fillibuster",
+    "default_popup": "popup/popup.html"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "permissions": ["storage", "scripting", "activeTab"]
+}
