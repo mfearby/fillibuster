@@ -39,6 +39,7 @@ import {
   getSettings,
   listConfigs,
   putConfig,
+  setEncryptionEnabled,
   setKdf,
   setSessionKey,
   setVerifier,
@@ -291,13 +292,37 @@ async function handleListConfigs(): Promise<OrchestratorResult<ConfigSummary[]>>
   return success(configs.map(toSummary));
 }
 
-/** Fetch a single stored config by id (Req 6.2). */
+/**
+ * Fetch a single config for editing as a plaintext {@link FillConfig} (Req 6.2).
+ *
+ * A plaintext config is returned as-is. An encrypted config is decrypted first
+ * using the in-session key so the editor can edit its steps; if the session has
+ * no key this returns `locked` so the editor prompts for the passphrase before
+ * opening (Req 8.8). The `encrypted` flag is preserved on the returned config so
+ * the editor keeps its "this config is encrypted" affordances. Returning
+ * plaintext steps here is safe — the value only lives in the editor's memory and
+ * is re-encrypted on save (see {@link handleSaveConfig}).
+ */
 async function handleGetConfig(
   configId: string,
-): Promise<OrchestratorResult<StoredConfig>> {
+): Promise<OrchestratorResult<FillConfig>> {
   const config = await getConfig(configId);
   if (!config) return failure('not-found', `No config found with id ${configId}.`);
-  return success(config);
+
+  const stepsResult = await resolveSteps(config);
+  if (!stepsResult.ok) return stepsResult;
+
+  const editable: FillConfig = {
+    id: config.id,
+    name: config.name,
+    match: config.match,
+    steps: stepsResult.value,
+    errorStrategy: config.errorStrategy,
+    encrypted: config.encrypted,
+    createdAt: config.createdAt,
+    updatedAt: config.updatedAt,
+  };
+  return success(editable);
 }
 
 /**
@@ -416,6 +441,35 @@ async function handleEnableEncryption(
 }
 
 /**
+ * Disable encryption (Req 8.4). Clears `encryptionEnabled`, the KDF params, and
+ * the verifier via the store, and forgets the in-session key so no stale key
+ * material lingers. Any config still marked encrypted keeps its ciphertext at
+ * rest — disabling turns off the feature, it doesn't decrypt in place; the UI
+ * warns that such configs can't be read again until encryption is re-enabled
+ * with the same passphrase.
+ */
+async function handleDisableEncryption(): Promise<OrchestratorResult<null>> {
+  await setEncryptionEnabled(false);
+  await clearSessionKey();
+  return success(null);
+}
+
+/**
+ * Report the current encryption state for the settings UI (Req 8.3, 8.4, 8.8):
+ * whether encryption is enabled at all, and whether the session currently holds
+ * an unlocked key. Reads only settings + the presence of a session key, so it
+ * never decrypts anything.
+ */
+async function handleEncryptionStatus(): Promise<
+  OrchestratorResult<{ enabled: boolean; unlocked: boolean }>
+> {
+  const settings = await getSettings();
+  const enabled = settings.encryptionEnabled === true;
+  const key = enabled ? await getSessionKey() : null;
+  return success({ enabled, unlocked: key !== null });
+}
+
+/**
  * Unlock the session with the master passphrase (Req 8.8, 8.9). Derives the key
  * from the stored kdf params, checks it against the stored verifier, and on
  * success caches the key in `storage.session`. A wrong passphrase returns a
@@ -490,6 +544,10 @@ export async function handleUiMessage(
         return await handleImportConfig(message.text);
       case MessageType.EnableEncryption:
         return await handleEnableEncryption(message.passphrase);
+      case MessageType.DisableEncryption:
+        return await handleDisableEncryption();
+      case MessageType.EncryptionStatus:
+        return await handleEncryptionStatus();
       case MessageType.Unlock:
         return await handleUnlock(message.passphrase);
       case MessageType.Lock:

@@ -317,6 +317,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790689536038
+      },
+      {
+        "executionId": "a676efab-cb80-4cce-9612-89761e63bcd4",
+        "chatSessionId": "sess_17f25441-07eb-415f-b016-971694d241eb",
+        "timestamp": 1790741779876
+      },
+      {
+        "executionId": "a676efab-cb80-4cce-9612-89761e63bcd4",
+        "chatSessionId": "sess_17f25441-07eb-415f-b016-971694d241eb",
+        "timestamp": 1790742000987
       }
     ],
     "12.5 Encryption settings UI": [
@@ -324,6 +334,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790683767603
+      },
+      {
+        "executionId": "5231abb2-dce7-4286-b3e7-465b2fd1f780",
+        "chatSessionId": "sess_e01f06ae-bcb8-443d-a994-fcb90bd11ae9",
+        "timestamp": 1790742047892
+      },
+      {
+        "executionId": "5231abb2-dce7-4286-b3e7-465b2fd1f780",
+        "chatSessionId": "sess_e01f06ae-bcb8-443d-a994-fcb90bd11ae9",
+        "timestamp": 1790742833803
       }
     ],
     "13.1 Author manifests": [
@@ -331,6 +351,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790683767632
+      },
+      {
+        "executionId": "236da8b7-21d5-4cb7-ad51-975135e19e47",
+        "chatSessionId": "sess_827b6aa5-ea19-4b77-a670-f094f844c213",
+        "timestamp": 1790742997480
+      },
+      {
+        "executionId": "236da8b7-21d5-4cb7-ad51-975135e19e47",
+        "chatSessionId": "sess_827b6aa5-ea19-4b77-a670-f094f844c213",
+        "timestamp": 1790743140974
       }
     ],
     "13.2 Build script and packaging": [
@@ -338,6 +368,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790683767660
+      },
+      {
+        "executionId": "ceff982a-1341-40b2-a610-33a70342c4f5",
+        "chatSessionId": "sess_3b14b71d-038c-4b1a-8ddd-047b2343ef96",
+        "timestamp": 1790743171782
+      },
+      {
+        "executionId": "ceff982a-1341-40b2-a610-33a70342c4f5",
+        "chatSessionId": "sess_3b14b71d-038c-4b1a-8ddd-047b2343ef96",
+        "timestamp": 1790743770384
       }
     ],
     "14. README with build and store-submission instructions": [
@@ -345,6 +385,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790683767698
+      },
+      {
+        "executionId": "07db4255-a17c-4ef9-9759-ecbee07d33e7",
+        "chatSessionId": "sess_aa356b1c-4c66-4794-84fd-b86d664b2d74",
+        "timestamp": 1790743821951
+      },
+      {
+        "executionId": "07db4255-a17c-4ef9-9759-ecbee07d33e7",
+        "chatSessionId": "sess_aa356b1c-4c66-4794-84fd-b86d664b2d74",
+        "timestamp": 1790744011149
       }
     ],
     "15. End-to-end verification pass": [
@@ -352,6 +402,16 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790683767720
+      },
+      {
+        "executionId": "5cc2856d-af45-482a-b967-2acd522787a7",
+        "chatSessionId": "sess_aa356b1c-4c66-4794-84fd-b86d664b2d74",
+        "timestamp": 1790849486211
+      },
+      {
+        "executionId": "5cc2856d-af45-482a-b967-2acd522787a7",
+        "chatSessionId": "sess_aa356b1c-4c66-4794-84fd-b86d664b2d74",
+        "timestamp": 1790849788243
       }
     ],
     "2. Define the config schema and runtime validation in `core/`": [
@@ -380,6 +440,20 @@
         "executionId": "c6b20c82-1038-4d6c-84ac-62bf63a9ea62",
         "chatSessionId": "sess_9219ed74-9c88-4c87-965c-5df6867422ad",
         "timestamp": 1790687936107
+      }
+    ],
+    "12. Build the options / management UI (Preact)": [
+      {
+        "executionId": "5231abb2-dce7-4286-b3e7-465b2fd1f780",
+        "chatSessionId": "sess_e01f06ae-bcb8-443d-a994-fcb90bd11ae9",
+        "timestamp": 1790742833851
+      }
+    ],
+    "13. Manifests and cross-browser build": [
+      {
+        "executionId": "ceff982a-1341-40b2-a610-33a70342c4f5",
+        "chatSessionId": "sess_3b14b71d-038c-4b1a-8ddd-047b2343ef96",
+        "timestamp": 1790743770426
       }
     ]
   }

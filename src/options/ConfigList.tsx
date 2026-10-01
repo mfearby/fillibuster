@@ -36,11 +36,22 @@ export interface ConfigListProps {
   onExport: (config: ConfigSummary) => void;
   /** Open the import-by-paste dialog (Req 7.3). */
   onImport: () => void;
+  /** Open the encryption settings view (Req 8.4, 8.8, 8.10). */
+  onEncryption: () => void;
 }
 
 export function ConfigList(props: ConfigListProps) {
-  const { configs, busy, onNew, onOpen, onDelete, onCapture, onExport, onImport } =
-    props;
+  const {
+    configs,
+    busy,
+    onNew,
+    onOpen,
+    onDelete,
+    onCapture,
+    onExport,
+    onImport,
+    onEncryption,
+  } = props;
 
   // Which row (if any) is showing its inline delete confirmation (Req 6.6).
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -64,6 +75,9 @@ export function ConfigList(props: ConfigListProps) {
         </button>
         <button disabled={busy} onClick={onImport}>
           Import config
+        </button>
+        <button disabled={busy} onClick={onEncryption}>
+          Encryption
         </button>
       </div>
 

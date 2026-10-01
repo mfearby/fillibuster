@@ -45,6 +45,8 @@ export const MessageType = {
   ExportConfig: 'exportConfig',
   ImportConfig: 'importConfig',
   EnableEncryption: 'enableEncryption',
+  DisableEncryption: 'disableEncryption',
+  EncryptionStatus: 'encryptionStatus',
   Unlock: 'unlock',
   Lock: 'lock',
   IsUnlocked: 'isUnlocked',
@@ -191,6 +193,33 @@ export interface EnableEncryptionMessage {
 }
 
 /**
+ * Disable encryption: clear `encryptionEnabled`, the KDF params, the verifier,
+ * and the in-session key so no stale key material lingers (Req 8.4). Configs
+ * that were marked encrypted keep their ciphertext at rest — disabling only
+ * turns off the feature; the UI warns that any still-encrypted config can no
+ * longer be read until encryption is re-enabled with the same passphrase.
+ */
+export interface DisableEncryptionMessage {
+  type: typeof MessageType.DisableEncryption;
+}
+
+/**
+ * The current encryption state the options settings UI renders: whether
+ * encryption is `enabled` at all (Req 8.3, 8.4) and, when it is, whether the
+ * session currently holds an unlocked key (Req 8.8). Read on mount so the UI
+ * shows the right affordance (enable vs. lock/unlock vs. disable).
+ */
+export interface EncryptionStatus {
+  enabled: boolean;
+  unlocked: boolean;
+}
+
+/** Query the current {@link EncryptionStatus} for the settings UI (Req 8.3, 8.4, 8.8). */
+export interface EncryptionStatusMessage {
+  type: typeof MessageType.EncryptionStatus;
+}
+
+/**
  * Unlock the session with the master passphrase: derive the key, verify against
  * the stored verifier, and on success cache the key in `storage.session`
  * (Req 8.8, 8.9).
@@ -226,6 +255,8 @@ export type UiRequest =
   | ExportConfigMessage
   | ImportConfigMessage
   | EnableEncryptionMessage
+  | DisableEncryptionMessage
+  | EncryptionStatusMessage
   | UnlockMessage
   | LockMessage
   | IsUnlockedMessage;
@@ -242,6 +273,8 @@ const UI_REQUEST_TYPES: ReadonlySet<string> = new Set([
   MessageType.ExportConfig,
   MessageType.ImportConfig,
   MessageType.EnableEncryption,
+  MessageType.DisableEncryption,
+  MessageType.EncryptionStatus,
   MessageType.Unlock,
   MessageType.Lock,
   MessageType.IsUnlocked,

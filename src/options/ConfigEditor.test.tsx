@@ -255,13 +255,110 @@ describe('ConfigEditor (task 12.2)', () => {
     });
   });
 
-  it('shows a locked note and no step editor for an encrypted config', async () => {
+  it('lets an encrypted config edit its (decrypted) steps and shows the Encrypted toggle (Req 8.6)', async () => {
+    // The background decrypts on open when unlocked, so the editor receives a
+    // plaintext draft with `encrypted: true` — the step editor is available.
     render(
-      <ConfigEditor draft={draft({ encrypted: true })} onSaved={noop} onBack={noop} />,
+      <ConfigEditor
+        draft={draft({ encrypted: true })}
+        onSaved={noop}
+        onBack={noop}
+      />,
     );
     await screen.findByLabelText('Name');
 
-    expect(screen.getByText(/encrypted/i)).toBeTruthy();
-    expect(screen.queryByText('Add step')).toBeNull();
+    // The step editor is present (no longer a "locked, can't edit" note).
+    expect(screen.getByText('Add step')).toBeTruthy();
+    // The Encrypted toggle reflects the config's encrypted flag.
+    const toggle = screen.getByLabelText(
+      /Encrypt this config/i,
+    ) as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('marks a config encrypted when encryption is enabled + unlocked (Req 8.6)', async () => {
+    sendUi.mockReset();
+    sendUi.mockImplementation(async (msg: UiRequest) => {
+      if (msg.type === MessageType.SaveConfig) return ok(msg.config as StoredConfig);
+      if (msg.type === MessageType.EncryptionStatus)
+        return ok({ enabled: true, unlocked: true });
+      return ok(null);
+    });
+
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
+    await screen.findByLabelText('Name');
+
+    const toggle = (await screen.findByLabelText(
+      /Encrypt this config/i,
+    )) as HTMLInputElement;
+    // Enabled + unlocked -> the toggle is actionable.
+    await waitFor(() => expect(toggle.disabled).toBe(false));
+    fireEvent.click(toggle);
+
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(lastSavedConfig().encrypted).toBe(true));
+  });
+
+  it('prompts to unlock when opening an encrypted config while locked (Req 8.8)', async () => {
+    sendUi.mockReset();
+    let unlocked = false;
+    sendUi.mockImplementation(async (msg: UiRequest) => {
+      if (msg.type === MessageType.EncryptionStatus)
+        return ok({ enabled: true, unlocked });
+      if (msg.type === MessageType.GetConfig) {
+        return unlocked
+          ? ok(draft({ id: 'enc1', name: 'Secret', encrypted: true }))
+          : ({ ok: false, code: 'locked', error: 'locked' } as OrchestratorResult<never>);
+      }
+      if (msg.type === MessageType.Unlock) {
+        unlocked = true;
+        return ok(null);
+      }
+      return ok(null);
+    });
+
+    render(<ConfigEditor configId="enc1" onSaved={noop} onBack={noop} />);
+
+    // The unlock prompt shows instead of the editor.
+    const pass = (await screen.findByLabelText(
+      'Master passphrase',
+    )) as HTMLInputElement;
+    fireEvent.input(pass, { target: { value: 'correct horse' } });
+    fireEvent.click(screen.getByText('Unlock'));
+
+    // After unlock the editor loads the (now decrypted) config.
+    expect(await screen.findByLabelText('Name')).toBeTruthy();
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(
+      'Secret',
+    );
+  });
+
+  it('keeps the unlock prompt with an error on a wrong passphrase (Req 8.9)', async () => {
+    sendUi.mockReset();
+    sendUi.mockImplementation(async (msg: UiRequest) => {
+      if (msg.type === MessageType.EncryptionStatus)
+        return ok({ enabled: true, unlocked: false });
+      if (msg.type === MessageType.GetConfig)
+        return { ok: false, code: 'locked', error: 'locked' } as OrchestratorResult<never>;
+      if (msg.type === MessageType.Unlock)
+        return {
+          ok: false,
+          code: 'wrong-passphrase',
+          error: 'Incorrect passphrase.',
+        } as OrchestratorResult<never>;
+      return ok(null);
+    });
+
+    render(<ConfigEditor configId="enc1" onSaved={noop} onBack={noop} />);
+
+    const pass = (await screen.findByLabelText(
+      'Master passphrase',
+    )) as HTMLInputElement;
+    fireEvent.input(pass, { target: { value: 'wrong' } });
+    fireEvent.click(screen.getByText('Unlock'));
+
+    expect(await screen.findByText(/Incorrect passphrase/i)).toBeTruthy();
+    // Still on the unlock prompt, editor not loaded.
+    expect(screen.queryByLabelText('Name')).toBeNull();
   });
 });

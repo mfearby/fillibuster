@@ -74,7 +74,7 @@ This plan builds Fillibuster bottom-up: the browser-free `core/` logic first (fu
   - Add `popup/` (`popup.html` + Preact TSX): list configs matching the current tab, run a selected config with live per-step progress and a success/failure summary, prompt for the master passphrase when running an encrypted config while locked, and offer "capture this page" / "open settings" when nothing matches.
   - _Requirements: 5.1, 5.2, 5.4, 5.6, 8.8, 9.1_
 
-- [ ] 12. Build the options / management UI (Preact)
+- [x] 12. Build the options / management UI (Preact)
 - [x] 12.1 Config list and CRUD shell
   - Add `options/` (`options.html` + Preact TSX): list all saved configs; create, open, and delete-with-confirmation.
   - _Requirements: 6.1, 6.6_
@@ -84,25 +84,25 @@ This plan builds Fillibuster bottom-up: the browser-free `core/` logic first (fu
 - [x] 12.3 Capture-to-config flow
   - Trigger capture on the active tab, present candidate steps for review/pruning/editing, and save only the kept fields into a config (never auto-save).
   - _Requirements: 2.2, 2.4, 2.5, 2.6_
-- [ ] 12.4 Import / export UI
+- [x] 12.4 Import / export UI
   - Export a config (copy JSON envelope to clipboard) with a warning before including decrypted values; add-config-by-paste that validates and, on name collision, keeps both.
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.7_
-- [ ] 12.5 Encryption settings UI
+- [x] 12.5 Encryption settings UI
   - Enable/disable encryption by setting the master passphrase (with an explicit no-recovery warning), mark a config as encrypted, prompt-to-unlock, and communicate that non-encrypted data is only as protected as the browser profile.
   - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.8, 8.10, 8.11_
 
-- [ ] 13. Manifests and cross-browser build
-- [ ] 13.1 Author manifests
+- [x] 13. Manifests and cross-browser build
+- [x] 13.1 Author manifests
   - Add `manifest/manifest.base.json` (shared: name, version, action/popup, options page, permissions incl. `storage`, `scripting`, `activeTab`), `manifest.chrome.json` (service-worker background), and `manifest.firefox.json` (`background.scripts` event page + `browser_specific_settings.gecko`).
   - _Requirements: 1.1, 1.2_
-- [ ] 13.2 Build script and packaging
+- [x] 13.2 Build script and packaging
   - Add `scripts/build.mjs`: run Vite per target, merge base + per-target manifest into each `dist/<target>/manifest.json`, wire `webextension-polyfill` for Chrome (service worker `importScripts` + page `<script>`), and zip artifacts (`web-ext build` for Firefox). Confirm `build:firefox`, `build:chrome`, `build`, `package`, `dev` scripts work.
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 14. README with build and store-submission instructions
+- [x] 14. README with build and store-submission instructions
   - Document dev install (load unpacked in Chrome, temporary add-on in Firefox), the reproducible build commands, and an AMO-facing "How to build from source" section (Vite minifies, does not obfuscate).
   - _Requirements: 1.4_
 
-- [ ] 15. End-to-end verification pass
+- [x] 15. End-to-end verification pass
   - Build both targets, load unpacked in Chrome and Firefox, and manually verify: badge on match, popup listing + fill on a sample form (including a states `<select>` and a checkbox), capture flow, export/import between profiles, and the encryption enable → unlock → wrong-passphrase flows. Fix any issues found.
   - _Requirements: 1.1, 1.2, 2.2, 3.2, 4.2, 5.4, 7.1, 8.8, 8.9, 9.1_

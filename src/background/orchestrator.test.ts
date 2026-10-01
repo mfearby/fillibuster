@@ -78,6 +78,13 @@ const store = vi.hoisted(() => {
     updateSettings: vi.fn(async (patch: Partial<StoredState['settings']>) => {
       state.settings = { ...state.settings, ...patch };
     }),
+    setEncryptionEnabled: vi.fn(async (enabled: boolean) => {
+      if (enabled) {
+        state.settings = { ...state.settings, encryptionEnabled: true };
+        return;
+      }
+      state.settings = { encryptionEnabled: false };
+    }),
     setKdf: vi.fn(async (kdf: { salt: string; iterations: number }) => {
       state.settings.kdf = kdf;
     }),
@@ -101,6 +108,7 @@ vi.mock('../platform/store', () => ({
   deleteConfig: store.deleteConfig,
   getSettings: store.getSettings,
   updateSettings: store.updateSettings,
+  setEncryptionEnabled: store.setEncryptionEnabled,
   setKdf: store.setKdf,
   setVerifier: store.setVerifier,
   setSessionKey: store.setSessionKey,
@@ -342,6 +350,41 @@ describe('encryption lock/unlock (Req 8.8, 8.9)', () => {
     // Still locked.
     const unlocked = await handleUiMessage({ type: MessageType.IsUnlocked });
     expect(unlocked).toMatchObject({ ok: true, value: false });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Encryption status + disable (task 12.5, Req 8.3, 8.4, 8.8)
+// ---------------------------------------------------------------------------
+
+describe('encryption status + disable (Req 8.3, 8.4, 8.8)', () => {
+  it('reports disabled by default (Req 8.3)', async () => {
+    const res = await handleUiMessage({ type: MessageType.EncryptionStatus });
+    expect(res).toMatchObject({ ok: true, value: { enabled: false, unlocked: false } });
+  });
+
+  it('reports enabled + unlocked after enabling (Req 8.4)', async () => {
+    await handleUiMessage({ type: MessageType.EnableEncryption, passphrase: 'pw' });
+    const res = await handleUiMessage({ type: MessageType.EncryptionStatus });
+    expect(res).toMatchObject({ ok: true, value: { enabled: true, unlocked: true } });
+  });
+
+  it('reports enabled + locked after locking (Req 8.8)', async () => {
+    await handleUiMessage({ type: MessageType.EnableEncryption, passphrase: 'pw' });
+    await handleUiMessage({ type: MessageType.Lock });
+    const res = await handleUiMessage({ type: MessageType.EncryptionStatus });
+    expect(res).toMatchObject({ ok: true, value: { enabled: true, unlocked: false } });
+  });
+
+  it('disables encryption and clears the session key (Req 8.4)', async () => {
+    await handleUiMessage({ type: MessageType.EnableEncryption, passphrase: 'pw' });
+    const res = await handleUiMessage({ type: MessageType.DisableEncryption });
+    expect(res.ok).toBe(true);
+
+    const status = await handleUiMessage({ type: MessageType.EncryptionStatus });
+    expect(status).toMatchObject({ ok: true, value: { enabled: false, unlocked: false } });
+    const settings = await store.getSettings();
+    expect(settings.encryptionEnabled).toBe(false);
   });
 });
 

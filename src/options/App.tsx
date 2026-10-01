@@ -32,6 +32,7 @@ import { sendUi } from '../platform/rpc';
 import { CaptureReview } from './CaptureReview';
 import { ConfigEditor } from './ConfigEditor';
 import { ConfigList } from './ConfigList';
+import { EncryptionSettings } from './EncryptionSettings';
 import { ExportDialog } from './ExportDialog';
 import { ImportDialog } from './ImportDialog';
 
@@ -46,7 +47,8 @@ type View =
   | { kind: 'editor'; configId?: string; draft?: FillConfig }
   | { kind: 'capture-review'; candidates: CaptureCandidate[] }
   | { kind: 'export'; config: ConfigSummary }
-  | { kind: 'import' };
+  | { kind: 'import' }
+  | { kind: 'encryption' };
 
 /** Build a fresh, empty config with sensible defaults (Req 6.1). */
 function newConfig(): FillConfig {
@@ -167,6 +169,11 @@ export function App() {
     setView({ kind: 'import' });
   }
 
+  /** Open the encryption settings view (Req 8.4, 8.8, 8.10, 8.11). */
+  function openEncryption() {
+    setView({ kind: 'encryption' });
+  }
+
   /**
    * After a successful import, refresh the underlying list data so the new
    * config is reflected once the dialog closes, but keep the dialog open so it
@@ -224,6 +231,16 @@ export function App() {
     );
   }
 
+  if (view.kind === 'encryption') {
+    // Encryption state can change whether configs are lockable, so refresh the
+    // list on the way back (Req 8.4, 8.6).
+    return (
+      <main>
+        <EncryptionSettings onBack={() => void backToList()} />
+      </main>
+    );
+  }
+
   return (
     <main>
       {loading ? (
@@ -238,6 +255,7 @@ export function App() {
           onCapture={startCapture}
           onExport={openExport}
           onImport={openImport}
+          onEncryption={openEncryption}
         />
       )}
       {error ? <p class="error">{error}</p> : null}
