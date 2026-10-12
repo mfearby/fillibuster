@@ -48,7 +48,12 @@ export interface MatchRule {
  * Discriminated union on `type` so v2 step types (e.g. "autocomplete") slot in
  * without breaking v1 configs (Req 3.5).
  */
-export type FieldStep = TextStep | SelectStep | CheckStep | ContentEditableStep;
+export type FieldStep =
+  | TextStep
+  | SelectStep
+  | CheckStep
+  | RadioStep
+  | ContentEditableStep;
 
 export interface BaseStep {
   id: string;
@@ -80,10 +85,25 @@ export interface SelectStep extends BaseStep {
   matchBy: "value" | "text";
 }
 
-/** Checkbox / radio (Req 3.3). */
+/** Single checkbox (Req 3.3). */
 export interface CheckStep extends BaseStep {
   type: "check";
   checked: boolean;
+}
+
+/**
+ * Radio-button group (Req 3.3).
+ *
+ * A radio group is a set of `<input type="radio">` controls that share a
+ * `name`; selecting one deselects its siblings. Unlike {@link CheckStep}, the
+ * step does not toggle a single element — it selects the group member whose
+ * `value` matches, mirroring how {@link SelectStep} picks an `<option>`. The
+ * `target` identifies the group (typically `by: "name"`); `value` is the
+ * desired member's `value` attribute.
+ */
+export interface RadioStep extends BaseStep {
+  type: "radio";
+  value: string;
 }
 
 /** contenteditable element (Req 3.4). */

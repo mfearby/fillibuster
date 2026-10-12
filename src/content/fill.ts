@@ -26,6 +26,7 @@ import type {
   CheckStep,
   ContentEditableStep,
   FieldStep,
+  RadioStep,
   Selector,
   SelectStep,
   TextStep,
@@ -145,6 +146,8 @@ function applyStep(
       case 'check':
         applyCheck(el, step);
         break;
+      case 'radio':
+        return applyRadio(el, step, index, root);
       case 'contenteditable':
         applyContentEditable(el, step);
         break;
@@ -210,6 +213,62 @@ function applyCheck(el: Element, step: CheckStep): void {
   input.checked = step.checked;
   dispatchEvent(input, 'click');
   dispatchChange(input);
+}
+
+/**
+ * radio (Req 3.3): select the group member whose `value` matches `step.value`,
+ * mirroring {@link applySelect}.
+ *
+ * `resolveTarget` returns a single element, but a radio group spans every
+ * member sharing a `name`. We collect the whole group — by `name` when the
+ * resolved element has one (the usual case), else just the resolved element —
+ * then check the matching member and clear its siblings. The browser deselects
+ * siblings automatically when the matched member is clicked, but we clear them
+ * explicitly so the result is deterministic under jsdom. `click` and `change`
+ * fire on the matched member so native and framework handlers observe it.
+ */
+function applyRadio(
+  el: Element,
+  step: RadioStep,
+  index: number,
+  root: Document | Element,
+): StepResult {
+  const resolved = el as HTMLInputElement;
+  const group = radioGroup(resolved, root);
+
+  const match = group.find((r) => r.value === step.value);
+  if (!match) {
+    return {
+      index,
+      ok: false,
+      reason: `no radio option matching value "${step.value}"`,
+    };
+  }
+
+  for (const member of group) {
+    member.checked = member === match;
+  }
+  dispatchEvent(match, 'click');
+  dispatchChange(match);
+  return { index, ok: true };
+}
+
+/**
+ * Collect every member of `el`'s radio group. Members share a `name`; when
+ * `el` has one we look the group up within `root`, otherwise the group is just
+ * `el` itself (an unnamed radio).
+ */
+function radioGroup(
+  el: HTMLInputElement,
+  root: Document | Element,
+): HTMLInputElement[] {
+  const name = el.getAttribute('name');
+  if (!name) return [el];
+  const selector = `input[type="radio"][name="${cssAttrEscape(name)}"]`;
+  const found = Array.from(
+    root.querySelectorAll<HTMLInputElement>(selector),
+  );
+  return found.length > 0 ? found : [el];
 }
 
 /**

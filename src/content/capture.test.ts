@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type {
   CheckStep,
   ContentEditableStep,
+  RadioStep,
   SelectStep,
   TextStep,
 } from '../core/schema';
@@ -171,6 +172,70 @@ describe('capturePage — default state extraction (Req 2.4)', () => {
     const step = only(capturePage(document)).step as ContentEditableStep;
     expect(step.type).toBe('contenteditable');
     expect(step.html).toBe('<b>hi</b>');
+  });
+});
+
+describe('capturePage — radio groups (Req 2.2, 2.4, 3.3)', () => {
+  it('captures a radio group as a single step targeted by name', () => {
+    mount(`
+      <form>
+        <input type="radio" name="contact" value="email" />
+        <input type="radio" name="contact" value="phone" />
+        <input type="radio" name="contact" value="mail" />
+      </form>
+    `);
+    const candidates = capturePage(document);
+    expect(candidates).toHaveLength(1);
+    const step = candidates[0]!.step as RadioStep;
+    expect(step.type).toBe('radio');
+    expect(step.target).toEqual({ by: 'name', value: 'contact' });
+    expect(candidates[0]!.fragile).toBe(false);
+  });
+
+  it('defaults the value to the currently-checked member', () => {
+    mount(`
+      <form>
+        <input type="radio" name="contact" value="email" />
+        <input type="radio" name="contact" value="phone" checked />
+      </form>
+    `);
+    const step = only(capturePage(document)).step as RadioStep;
+    expect(step.value).toBe('phone');
+  });
+
+  it('defaults the value to "" when no member is checked', () => {
+    mount(`
+      <form>
+        <input type="radio" name="contact" value="email" />
+        <input type="radio" name="contact" value="phone" />
+      </form>
+    `);
+    const step = only(capturePage(document)).step as RadioStep;
+    expect(step.value).toBe('');
+  });
+
+  it('captures two differently-named groups as two steps', () => {
+    mount(`
+      <form>
+        <input type="radio" name="contact" value="email" />
+        <input type="radio" name="contact" value="phone" />
+        <input type="radio" name="size" value="s" />
+        <input type="radio" name="size" value="m" checked />
+      </form>
+    `);
+    const candidates = capturePage(document);
+    expect(candidates).toHaveLength(2);
+    const byName = Object.fromEntries(
+      candidates.map((c) => [(c.step as RadioStep).target.value, c.step as RadioStep]),
+    );
+    expect(byName['contact']!.value).toBe('');
+    expect(byName['size']!.value).toBe('m');
+  });
+
+  it('still classifies a checkbox as a check step, not radio', () => {
+    mount('<input id="agree" type="checkbox" checked />');
+    const step = only(capturePage(document)).step as CheckStep;
+    expect(step.type).toBe('check');
   });
 });
 

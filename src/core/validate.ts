@@ -18,6 +18,7 @@ import type {
   FieldStep,
   FillConfig,
   MatchRule,
+  RadioStep,
   Selector,
   SelectStep,
   TextStep,
@@ -46,7 +47,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-const STEP_TYPES = ['text', 'select', 'check', 'contenteditable'] as const;
+const STEP_TYPES = ['text', 'select', 'check', 'radio', 'contenteditable'] as const;
 const SELECTOR_BY = ['id', 'name', 'css'] as const;
 const RULE_KINDS = ['exact', 'prefix', 'glob'] as const;
 const ERROR_STRATEGIES = ['stop', 'continue'] as const;
@@ -109,6 +110,11 @@ function validateStep(v: unknown, path: string): Result<FieldStep> {
     case 'check': {
       if (typeof v['checked'] !== 'boolean') return err(`${path}.checked must be a boolean`);
       const step: CheckStep = { ...base, type: 'check', checked: v['checked'] };
+      return ok(step);
+    }
+    case 'radio': {
+      if (typeof v['value'] !== 'string') return err(`${path}.value must be a string`);
+      const step: RadioStep = { ...base, type: 'radio', value: v['value'] };
       return ok(step);
     }
     case 'contenteditable': {

@@ -31,6 +31,13 @@ function validConfig(): FillConfig {
         html: '<b>hi</b>',
         allowHtml: true,
       },
+      {
+        id: 's5',
+        type: 'radio',
+        label: 'contact method',
+        target: { by: 'name', value: 'contact' },
+        value: 'email',
+      },
     ],
     errorStrategy: 'continue',
     encrypted: false,
@@ -176,6 +183,23 @@ describe('validateConfig', () => {
       const res = validateConfig(cfg);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.error).toMatch(/steps\[2\]\.checked/);
+    });
+
+    it('accepts a well-formed radio step', () => {
+      const res = validateConfig(asUnknown(validConfig()));
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const radio = res.value.steps[4];
+        expect(radio).toMatchObject({ type: 'radio', value: 'email' });
+      }
+    });
+
+    it('rejects a radio step with a non-string value', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[4]!['value'] = 99;
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[4\]\.value must be a string/);
     });
 
     it('rejects a contenteditable step with a non-string html', () => {

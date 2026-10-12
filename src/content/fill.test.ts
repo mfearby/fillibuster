@@ -230,6 +230,72 @@ describe('applySteps — check', () => {
   });
 });
 
+describe('applySteps — radio', () => {
+  const groupHtml = `
+    <form>
+      <input type="radio" name="contact" value="email" />
+      <input type="radio" name="contact" value="phone" />
+      <input type="radio" name="contact" value="mail" />
+    </form>`;
+
+  it('selects the group member matching the value and fires click + change (Req 3.3)', () => {
+    mount(groupHtml);
+    const members = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="contact"]'),
+    );
+    const phone = members[1] as HTMLInputElement;
+    const events = recordEvents(phone, ['click', 'change']);
+
+    const summary = applySteps(
+      [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'phone' }],
+      'continue',
+    );
+
+    expect(phone.checked).toBe(true);
+    // Siblings are deselected.
+    expect(members[0]!.checked).toBe(false);
+    expect(members[2]!.checked).toBe(false);
+    expect(events).toEqual(['click', 'change']);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('moves the selection off a previously-checked sibling', () => {
+    mount(`
+      <form>
+        <input type="radio" name="contact" value="email" checked />
+        <input type="radio" name="contact" value="phone" />
+      </form>`);
+    const members = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="contact"]'),
+    );
+    expect(members[0]!.checked).toBe(true);
+
+    applySteps(
+      [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'phone' }],
+      'continue',
+    );
+
+    expect(members[0]!.checked).toBe(false);
+    expect(members[1]!.checked).toBe(true);
+  });
+
+  it('fails when no member matches the value', () => {
+    mount(groupHtml);
+    const summary = applySteps(
+      [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'fax' }],
+      'continue',
+    );
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0]?.ok).toBe(false);
+    expect(summary.results[0]?.reason).toContain('no radio option matching value "fax"');
+    // Nothing was selected.
+    const anyChecked = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="contact"]'),
+    ).some((r) => r.checked);
+    expect(anyChecked).toBe(false);
+  });
+});
+
 describe('applySteps — contenteditable', () => {
   it('sets textContent and dispatches input (Req 3.4)', () => {
     mount('<div id="editor" contenteditable="true"></div>');

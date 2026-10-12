@@ -57,6 +57,8 @@ function newStep(type: FieldStep['type']): FieldStep {
       return { ...base, type: 'select', value: '', matchBy: 'value' };
     case 'check':
       return { ...base, type: 'check', checked: false };
+    case 'radio':
+      return { ...base, type: 'radio', value: '' };
     case 'contenteditable':
       return { ...base, type: 'contenteditable', html: '', allowHtml: false };
   }

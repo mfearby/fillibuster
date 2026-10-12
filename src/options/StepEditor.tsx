@@ -21,6 +21,7 @@ import type {
   CheckStep,
   ContentEditableStep,
   FieldStep,
+  RadioStep,
   Selector,
   SelectStep,
   TextStep,
@@ -44,6 +45,7 @@ const STEP_TYPES: FieldStep['type'][] = [
   'text',
   'select',
   'check',
+  'radio',
   'contenteditable',
 ];
 
@@ -72,6 +74,8 @@ export function changeStepType(
       } satisfies SelectStep;
     case 'check':
       return { ...base, type: 'check', checked: false } satisfies CheckStep;
+    case 'radio':
+      return { ...base, type: 'radio', value: '' } satisfies RadioStep;
     case 'contenteditable':
       return {
         ...base,
@@ -299,6 +303,26 @@ function StepTypeFields(props: {
             }
           />
           <label for={`${idp}-checked`}>Checked</label>
+        </div>
+      );
+
+    case 'radio':
+      return (
+        <div class="field">
+          <label for={`${idp}-value`}>Value</label>
+          <input
+            id={`${idp}-value`}
+            type="text"
+            placeholder="The value of the radio option to select"
+            value={step.value}
+            disabled={disabled}
+            onInput={(e) =>
+              onChange({
+                ...step,
+                value: (e.target as HTMLInputElement).value,
+              })
+            }
+          />
         </div>
       );
 

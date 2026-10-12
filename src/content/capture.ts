@@ -26,6 +26,7 @@ import type {
   CheckStep,
   ContentEditableStep,
   FieldStep,
+  RadioStep,
   Selector,
   SelectStep,
   TextStep,
@@ -68,11 +69,17 @@ const FILLABLE_TEXT_INPUT_TYPES = new Set([
   // A bare/unknown type defaults to text; handled in `inputKind` below.
 ]);
 
-/** Input types treated as checkable (checkbox / radio) (Req 3.3). */
-const CHECKABLE_INPUT_TYPES = new Set(['checkbox', 'radio']);
+/** Checkbox inputs map to a {@link CheckStep} (Req 3.3). */
+const CHECKBOX_INPUT_TYPES = new Set(['checkbox']);
 
 /** How we classify a candidate control into a step type. */
-type ControlKind = 'text' | 'select' | 'check' | 'contenteditable' | null;
+type ControlKind =
+  | 'text'
+  | 'select'
+  | 'check'
+  | 'radio'
+  | 'contenteditable'
+  | null;
 
 /**
  * Scan `root` for fillable controls and return capture candidates (Req 2.2).
@@ -90,11 +97,23 @@ export function capturePage(
     'input, textarea, select, [contenteditable]',
   );
 
+  // Radio groups span multiple members sharing a `name`; emit each group once
+  // (at its first member's position) rather than one candidate per button.
+  const seenRadioGroups = new Set<string>();
+
   for (const el of Array.from(elements)) {
     const kind = classify(el);
     if (!kind) continue;
 
-    const { selector, fragile } = deriveSelector(el, doc);
+    if (kind === 'radio') {
+      const name = el.getAttribute('name');
+      if (name) {
+        if (seenRadioGroups.has(name)) continue;
+        seenRadioGroups.add(name);
+      }
+    }
+
+    const { selector, fragile } = deriveRadioSelector(el, kind, doc);
     const step = buildStep(el, kind, selector);
     if (!step) continue;
 
@@ -102,6 +121,27 @@ export function capturePage(
   }
 
   return candidates;
+}
+
+/**
+ * Selector derivation that special-cases named radio groups. A radio group's
+ * `name` is intentionally shared across members, so the usual uniqueness check
+ * in {@link deriveSelector} would reject it; targeting the group `by: "name"`
+ * is the correct, stable locator. Unnamed radios and all other controls fall
+ * through to {@link deriveSelector}.
+ */
+function deriveRadioSelector(
+  el: Element,
+  kind: ControlKind,
+  root: Document | Element,
+): { selector: Selector; fragile: boolean } {
+  if (kind === 'radio') {
+    const name = el.getAttribute('name');
+    if (name) {
+      return { selector: { by: 'name', value: name }, fragile: false };
+    }
+  }
+  return deriveSelector(el, root);
 }
 
 /**
@@ -132,7 +172,8 @@ function inputKind(input: HTMLInputElement): ControlKind {
   const type = (input.getAttribute('type') ?? 'text').toLowerCase();
 
   if (type === 'hidden') return null;
-  if (CHECKABLE_INPUT_TYPES.has(type)) return 'check';
+  if (type === 'radio') return 'radio';
+  if (CHECKBOX_INPUT_TYPES.has(type)) return 'check';
   if (FILLABLE_TEXT_INPUT_TYPES.has(type)) return 'text';
 
   // Non-fillable button-like types are skipped.
@@ -317,6 +358,14 @@ function buildStep(
       if (label) step.label = label;
       return step;
     }
+    case 'radio': {
+      // Default to the currently-checked member of the group, so re-filling
+      // reproduces the page's initial selection (Req 2.4).
+      const value = checkedRadioValue(el);
+      const step: RadioStep = { id, type: 'radio', target: selector, value };
+      if (label) step.label = label;
+      return step;
+    }
     case 'contenteditable': {
       const step: ContentEditableStep = {
         id,
@@ -330,6 +379,28 @@ function buildStep(
     default:
       return null;
   }
+}
+
+/**
+ * The `value` of the currently-checked member of `el`'s radio group, or `''`
+ * when none is checked. Looks across the whole group (members sharing a
+ * `name`) so capture records the group's selection regardless of which member
+ * the scan reached first.
+ */
+function checkedRadioValue(el: Element): string {
+  const input = el as HTMLInputElement;
+  const name = input.getAttribute('name');
+  const doc = ownerDocument(el);
+  if (name && doc) {
+    const members = doc.querySelectorAll<HTMLInputElement>(
+      `input[type="radio"][name="${cssAttrEscape(name)}"]`,
+    );
+    for (const member of Array.from(members)) {
+      if (member.checked) return member.value;
+    }
+    return '';
+  }
+  return input.checked ? input.value : '';
 }
 
 /**
