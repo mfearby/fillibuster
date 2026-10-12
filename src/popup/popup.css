@@ -9,6 +9,36 @@
   --fail: #cf222e;
   --bg: #ffffff;
   --bg-subtle: #f6f8fa;
+  --warn-bg: #fff8f8;
+}
+
+/* Dark palette. Applied when the user picks "Dark" (`data-theme="dark"`) or
+   when they pick "System" and the OS prefers dark. Light mode above is the
+   default and is left untouched. */
+:root[data-theme='dark'] {
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+  --accent: #4493f8;
+  --ok: #3fb950;
+  --fail: #f85149;
+  --bg: #0d1117;
+  --bg-subtle: #161b22;
+  --warn-bg: #2d1b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --border: #30363d;
+    --accent: #4493f8;
+    --ok: #3fb950;
+    --fail: #f85149;
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --warn-bg: #2d1b1b;
+  }
 }
 
 * {
@@ -79,6 +109,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
+  color: var(--fg);
   padding: 5px 10px;
 }
 
@@ -149,4 +180,26 @@ button:disabled {
 .spinner {
   color: var(--muted);
   margin-top: 8px;
+}
+
+/* --- Theme toggle --- */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.theme-toggle label {
+  color: var(--muted);
+}
+
+.theme-toggle select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
 }

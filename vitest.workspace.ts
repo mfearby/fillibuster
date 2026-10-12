@@ -22,6 +22,7 @@ export default defineWorkspace([
         'src/content/**/*.{test,spec}.{ts,tsx}',
         'src/popup/**/*.{test,spec}.{ts,tsx}',
         'src/options/**/*.{test,spec}.{ts,tsx}',
+        'src/ui/**/*.{test,spec}.{ts,tsx}',
         'src/platform/**/*.{test,spec}.{ts,tsx}',
         'src/background/**/*.{test,spec}.{ts,tsx}',
       ],

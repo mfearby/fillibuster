@@ -35,7 +35,14 @@ const { tabsQuery } = vi.hoisted(() => ({
 
 vi.mock('../platform/browser', () => ({
   __esModule: true,
-  default: { tabs: { query: tabsQuery } },
+  default: {
+    tabs: { query: tabsQuery },
+    // ThemeToggle (rendered by App) reads the theme preference from
+    // storage.local on mount; a no-op in-memory area keeps it from throwing.
+    storage: {
+      local: { get: vi.fn(async () => ({})), set: vi.fn(async () => undefined) },
+    },
+  },
 }));
 
 import { App } from './App';

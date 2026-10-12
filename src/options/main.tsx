@@ -10,7 +10,11 @@
 
 import { render } from 'preact';
 
+import { initTheme } from '../platform/theme';
 import { App } from './App';
+
+// Apply the saved theme (cached value first to avoid a flash) before mounting.
+void initTheme();
 
 const root = document.getElementById('root');
 if (root) {

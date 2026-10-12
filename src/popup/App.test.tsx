@@ -36,6 +36,11 @@ vi.mock('../platform/browser', () => {
   const browser = {
     tabs: { query: tabsQuery },
     runtime: { openOptionsPage },
+    // ThemeToggle (rendered by App) reads the theme preference from
+    // storage.local on mount; a no-op in-memory area keeps it from throwing.
+    storage: {
+      local: { get: vi.fn(async () => ({})), set: vi.fn(async () => undefined) },
+    },
   };
   return { __esModule: true, default: browser, browser };
 });

@@ -35,6 +35,7 @@ import { ConfigList } from './ConfigList';
 import { EncryptionSettings } from './EncryptionSettings';
 import { ExportDialog } from './ExportDialog';
 import { ImportDialog } from './ImportDialog';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 /**
  * The list view (default), the editor view for a specific config / new draft,
@@ -243,6 +244,9 @@ export function App() {
 
   return (
     <main>
+      <header class="app-header">
+        <ThemeToggle />
+      </header>
       {loading ? (
         <p class="spinner">Loading…</p>
       ) : (

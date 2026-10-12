@@ -30,6 +30,7 @@ import type { OrchestratorResult } from '../background/orchestrator';
 import browser from '../platform/browser';
 import { MessageType, type ConfigSummary } from '../platform/messages';
 import { sendUi } from '../platform/rpc';
+import { ThemeToggle } from '../ui/ThemeToggle';
 import type { FillSummary } from '../content/fill';
 
 /** Query the active tab in the current window and return its id (Req 5.1). */
@@ -216,6 +217,7 @@ export function App() {
 
       <div class="actions">
         <button onClick={openSettings}>Open settings</button>
+        <ThemeToggle />
       </div>
     </main>
   );

@@ -14,6 +14,36 @@
   --fail: #cf222e;
   --bg: #ffffff;
   --bg-subtle: #f6f8fa;
+  --warn-bg: #fff8f8;
+}
+
+/* Dark palette. Applied when the user picks "Dark" (`data-theme="dark"`) or
+   when they pick "System" and the OS prefers dark. Light mode above is the
+   default and is left untouched. */
+:root[data-theme='dark'] {
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+  --accent: #4493f8;
+  --ok: #3fb950;
+  --fail: #f85149;
+  --bg: #0d1117;
+  --bg-subtle: #161b22;
+  --warn-bg: #2d1b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    --fg: #e6edf3;
+    --muted: #8b949e;
+    --border: #30363d;
+    --accent: #4493f8;
+    --ok: #3fb950;
+    --fail: #f85149;
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --warn-bg: #2d1b1b;
+  }
 }
 
 * {
@@ -109,6 +139,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
+  color: var(--fg);
   padding: 6px 12px;
 }
 
@@ -347,7 +378,7 @@ input.grow {
 .warn-box {
   border: 1px solid var(--fail);
   border-radius: 8px;
-  background: #fff8f8;
+  background: var(--warn-bg);
   padding: 12px 14px;
 }
 
@@ -366,4 +397,32 @@ input.grow {
     monospace;
   font-size: 12px;
   width: 100%;
+}
+
+/* --- App header + theme toggle --- */
+
+.app-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.theme-toggle select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
 }
