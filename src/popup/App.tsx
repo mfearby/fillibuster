@@ -188,7 +188,7 @@ export function App() {
             <span class="config-name">
               {config.name}
               {config.encrypted ? (
-                <span class="lock-icon" title="Encrypted" aria-label="Encrypted">
+                <span class="lock-icon" title="Encrypted at rest" aria-label="Encrypted at rest">
                   {' '}
                   🔒
                 </span>

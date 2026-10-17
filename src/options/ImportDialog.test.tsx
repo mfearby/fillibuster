@@ -75,6 +75,8 @@ describe('ImportDialog', () => {
     // Confirmation uses the resolved (kept-both) name from the returned config.
     expect(await screen.findByText('Added as "Login form (2)".')).toBeTruthy();
     expect(importedName).toBe('Login form (2)');
+    // The confirmation reminds the user the import is stored unencrypted.
+    expect(screen.getByText(/stored/i).textContent).toMatch(/unencrypted/i);
   });
 
   it('shows an error and does not notify the parent on invalid text (Req 7.4)', async () => {

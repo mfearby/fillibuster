@@ -94,13 +94,22 @@ export function ConfigList(props: ConfigListProps) {
                 {config.encrypted ? (
                   <span
                     class="lock-icon"
-                    title="Encrypted"
-                    aria-label="Encrypted"
+                    title="Encrypted at rest"
+                    aria-label="Encrypted at rest"
                   >
                     {' '}
                     🔒
                   </span>
-                ) : null}
+                ) : (
+                  // Explicit plaintext marker so an un-encrypted config (e.g. a
+                  // freshly imported one) is obvious rather than silent.
+                  <span
+                    class="plain-tag"
+                    title="Stored unencrypted. Open the config and tick 'Encrypt this config's values at rest' to protect it."
+                  >
+                    not encrypted
+                  </span>
+                )}
               </span>
 
               {confirmingId === config.id ? (

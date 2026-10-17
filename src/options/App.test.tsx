@@ -101,7 +101,7 @@ describe('options App', () => {
     expect(await screen.findByText('Login form')).toBeTruthy();
     expect(screen.getByText('Secret form')).toBeTruthy();
     // The encrypted row shows the lock indicator.
-    expect(screen.getByLabelText('Encrypted')).toBeTruthy();
+    expect(screen.getByLabelText('Encrypted at rest')).toBeTruthy();
   });
 
   it('opens the editor on a fresh draft when New config is clicked', async () => {

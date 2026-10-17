@@ -75,6 +75,11 @@ export function ImportDialog(props: ImportDialogProps) {
       {addedName !== null ? (
         <>
           <p class="ok">Added as "{addedName}".</p>
+          <p class="muted">
+            Imported configs are stored <strong>unencrypted</strong>. To protect
+            its values at rest, open the config and tick “Encrypt this config's
+            values at rest”.
+          </p>
           <div class="actions">
             <button class="primary" onClick={onClose}>
               Done
@@ -85,6 +90,12 @@ export function ImportDialog(props: ImportDialogProps) {
         <>
           <p class="subtitle">
             Paste an exported config below to add it as a new config.
+          </p>
+          <p class="muted">
+            Note: imported configs are stored <strong>unencrypted</strong>, even
+            if the original was encrypted. You can encrypt it after importing by
+            opening the config and ticking “Encrypt this config's values at
+            rest”.
           </p>
           <div class="field">
             <label for="import-text">Exported config (JSON)</label>
