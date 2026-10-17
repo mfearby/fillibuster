@@ -10,7 +10,7 @@
  *
  * Coverage: matching configs are listed; Run shows the per-step summary; a
  * `locked` run opens the passphrase prompt and a correct unlock retries the run
- * and shows the summary; a no-match state shows the capture/settings buttons.
+ * and shows the summary; a no-match state shows the settings button.
  *
  * Requirements: 5.1, 5.2, 5.4, 5.6, 8.8, 9.1
  */
@@ -162,7 +162,7 @@ describe('popup App', () => {
     expect(await screen.findByText(/Incorrect passphrase/)).toBeTruthy();
   });
 
-  it('offers capture and settings when nothing matches', async () => {
+  it('offers settings when nothing matches', async () => {
     sendUi.mockImplementation(async (msg: UiRequest) => {
       if (msg.type === MessageType.ListMatchingConfigs) return ok<ConfigSummary[]>([]);
       return fail('error', 'unexpected');
@@ -170,10 +170,10 @@ describe('popup App', () => {
 
     render(<App />);
 
-    const capture = await screen.findByText('Capture this page');
-    expect(capture).toBeTruthy();
-    const settings = screen.getByText('Open settings');
+    const settings = await screen.findByText('Open settings');
     expect(settings).toBeTruthy();
+    // The (non-functional) capture button has been removed.
+    expect(screen.queryByText('Capture this page')).toBeNull();
 
     fireEvent.click(settings);
     await waitFor(() => expect(openOptionsPage).toHaveBeenCalled());

@@ -17,9 +17,8 @@
  * message on a wrong passphrase (Req 8.9). `restricted`/`no-tab` results become
  * plain "can't run here" messages rather than silent failures (Req 9.4).
  *
- * When nothing matches, the popup offers "Capture this page" and "Open
- * settings", both routed through the options page via `openOptionsPage` (Req
- * 5.6).
+ * When nothing matches, the popup offers "Open settings", which opens the
+ * options page via `openOptionsPage` (Req 5.6).
  *
  * Requirements: 5.1, 5.2, 5.4, 5.6, 8.8, 8.9, 9.1, 9.4
  */
@@ -171,9 +170,8 @@ export function App() {
         <p class="muted">No saved configs match this page.</p>
         <div class="actions">
           <button class="primary" onClick={openSettings}>
-            Capture this page
+            Open settings
           </button>
-          <button onClick={openSettings}>Open settings</button>
         </div>
       </main>
     );

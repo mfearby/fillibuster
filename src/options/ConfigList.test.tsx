@@ -26,7 +26,6 @@ function renderList(overrides: Partial<Parameters<typeof ConfigList>[0]> = {}) {
     onNew: vi.fn(),
     onOpen: vi.fn(),
     onDelete: vi.fn(),
-    onCapture: vi.fn(),
     onExport: vi.fn(),
     onImport: vi.fn(),
     onEncryption: vi.fn(),

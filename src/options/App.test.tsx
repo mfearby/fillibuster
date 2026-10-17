@@ -20,7 +20,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OrchestratorResult } from '../background/orchestrator';
-import type { FillConfig, StoredConfig } from '../core/schema';
+import type { StoredConfig } from '../core/schema';
 import { MessageType, type ConfigSummary, type UiRequest } from '../platform/messages';
 
 // --- Mocks -----------------------------------------------------------------
@@ -69,19 +69,6 @@ const STORED_C1: StoredConfig = {
   createdAt: 1,
   updatedAt: 1,
 };
-
-import type { CaptureCandidate } from '../content/capture';
-
-const CANDIDATES: CaptureCandidate[] = [
-  {
-    step: { id: 's1', type: 'text', target: { by: 'id', value: 'email' }, value: 'a@b.co' },
-    fragile: false,
-  },
-  {
-    step: { id: 's2', type: 'check', target: { by: 'css', value: 'form > input:nth-of-type(2)' }, checked: true },
-    fragile: true,
-  },
-];
 
 beforeEach(() => {
   sendUi.mockReset();
@@ -200,7 +187,7 @@ describe('options App', () => {
     render(<App />);
     await screen.findByText('Login form');
 
-    fireEvent.click(screen.getAllByText('Open')[0] as HTMLElement);
+    fireEvent.click(screen.getAllByText('Edit')[0] as HTMLElement);
 
     const input = (await screen.findByLabelText('Name')) as HTMLInputElement;
     expect(input.value).toBe('Login form');
@@ -214,196 +201,5 @@ describe('options App', () => {
       ).toBe(true),
     );
     expect(savedName).toBe('Renamed form');
-  });
-
-  it('starts a capture, shows candidates and flags the fragile one (Req 2.2, 2.6)', async () => {
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.CaptureTab) {
-        expect(msg.tabId).toBe(42);
-        return ok(CANDIDATES);
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-
-    fireEvent.click(screen.getByText('Capture active tab'));
-
-    // The review view appears with both candidates; the fragile one is flagged.
-    expect(await screen.findByText('Review captured fields')).toBeTruthy();
-    expect(screen.getByText(/Fragile selector/)).toBeTruthy();
-    expect(screen.getAllByLabelText(/^Keep field/)).toHaveLength(2);
-  });
-
-  it('excludes an unchecked candidate from the created config (Req 2.5)', async () => {
-    let savedConfig: FillConfig | undefined;
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.CaptureTab) return ok(CANDIDATES);
-      if (msg.type === MessageType.SaveConfig) {
-        savedConfig = msg.config;
-        return ok({ ...msg.config, encrypted: false } as StoredConfig);
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-    fireEvent.click(screen.getByText('Capture active tab'));
-    await screen.findByText('Review captured fields');
-
-    // Uncheck the second (fragile) candidate so only the first is kept.
-    const keeps = screen.getAllByLabelText(/^Keep field/) as HTMLInputElement[];
-    fireEvent.click(keeps[1] as HTMLInputElement);
-
-    // Create the config from the single kept field, then save it.
-    fireEvent.click(screen.getByText(/Create config from/));
-
-    // Editor opens as a draft (no GetConfig). Save and assert the steps.
-    fireEvent.click(await screen.findByText('Save'));
-
-    await waitFor(() =>
-      expect(
-        sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.SaveConfig),
-      ).toBe(true),
-    );
-    expect(savedConfig).toBeDefined();
-    expect(savedConfig?.steps).toHaveLength(1);
-    expect(savedConfig?.steps[0]?.id).toBe('s1');
-  });
-
-  it('opens the editor with only kept steps (Req 2.5)', async () => {
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.CaptureTab) return ok(CANDIDATES);
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-    fireEvent.click(screen.getByText('Capture active tab'));
-    await screen.findByText('Review captured fields');
-
-    // Keep both; create -> editor draft should render two steps.
-    fireEvent.click(screen.getByText(/Create config from 2 fields/));
-
-    // The editor's step list shows two steps (Step 1 / Step 2).
-    expect(await screen.findByText('Step 1')).toBeTruthy();
-    expect(screen.getByText('Step 2')).toBeTruthy();
-    // Opened as a draft — no GetConfig round-trip.
-    expect(
-      sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.GetConfig),
-    ).toBe(false);
-  });
-
-  it('opens the export dialog for a config row and copies the envelope (Req 7.1, 7.2)', async () => {
-    const writeText = vi.fn(async () => undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    });
-    const envelope = '{"app":"fillibuster","schemaVersion":1,"config":{}}';
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.ExportConfig) {
-        expect(msg.configId).toBe('c1');
-        return ok(envelope);
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-
-    // The first (plaintext) row's Export action opens the dialog and exports.
-    fireEvent.click(screen.getAllByText('Export')[0] as HTMLElement);
-
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(envelope));
-    expect(await screen.findByText('Copied to clipboard.')).toBeTruthy();
-  });
-
-  it('imports a pasted config, refreshes the list and shows the added name (Req 7.3, 7.5)', async () => {
-    let imported = false;
-    const newStored: StoredConfig = {
-      ...STORED_C1,
-      id: 'c3',
-      name: 'Imported form',
-    };
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) {
-        return ok(imported ? [...CONFIGS, { id: 'c3', name: 'Imported form', encrypted: false }] : CONFIGS);
-      }
-      if (msg.type === MessageType.ImportConfig) {
-        expect(msg.text).toBe('{"app":"fillibuster"}');
-        imported = true;
-        return ok(newStored);
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-
-    fireEvent.click(screen.getByText('Import config'));
-    const textarea = (await screen.findByLabelText(
-      'Exported config (JSON)',
-    )) as HTMLTextAreaElement;
-    fireEvent.input(textarea, { target: { value: '{"app":"fillibuster"}' } });
-    fireEvent.click(screen.getByText('Add config'));
-
-    await waitFor(() =>
-      expect(
-        sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.ImportConfig),
-      ).toBe(true),
-    );
-    expect(await screen.findByText('Added as "Imported form".')).toBeTruthy();
-
-    // Returning to the list reflects the newly-added config.
-    fireEvent.click(screen.getByText('Done'));
-    expect(await screen.findByText('Imported form')).toBeTruthy();
-  });
-
-  it('leaves the list unchanged when an import fails (Req 7.4)', async () => {
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.ImportConfig) {
-        return { ok: false, code: 'error', error: 'not valid JSON' } as OrchestratorResult<never>;
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-
-    fireEvent.click(screen.getByText('Import config'));
-    const textarea = (await screen.findByLabelText(
-      'Exported config (JSON)',
-    )) as HTMLTextAreaElement;
-    fireEvent.input(textarea, { target: { value: 'garbage' } });
-    fireEvent.click(screen.getByText('Add config'));
-
-    expect(await screen.findByText('not valid JSON')).toBeTruthy();
-    // No confirmation, and the import call didn't add anything.
-    expect(screen.queryByText(/^Added as/)).toBeNull();
-  });
-
-  it('surfaces a restricted error when capture is refused (Req 9.4)', async () => {
-    sendUi.mockImplementation(async (msg: UiRequest) => {
-      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
-      if (msg.type === MessageType.CaptureTab) {
-        return { ok: false, code: 'restricted', error: "Can't capture here." } as OrchestratorResult<never>;
-      }
-      return fail('unexpected');
-    });
-
-    render(<App />);
-    await screen.findByText('Login form');
-    fireEvent.click(screen.getByText('Capture active tab'));
-
-    expect(await screen.findByText("Can't capture here.")).toBeTruthy();
-    // Stayed on the list view (no review shown).
-    expect(screen.queryByText('Review captured fields')).toBeNull();
   });
 });

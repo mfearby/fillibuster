@@ -1,7 +1,7 @@
 /**
  * The options list view (task 12.1).
  *
- * Renders every saved config as a row (name + encrypted indicator) with "Open"
+ * Renders every saved config as a row (name + encrypted indicator) with "Edit"
  * and "Delete" actions (Req 6.1). Delete is a two-step affordance: the first
  * click swaps the row's actions for an inline "Delete? / Cancel" confirmation so
  * a config is never removed on a single accidental click (Req 6.6). Only when
@@ -30,8 +30,6 @@ export interface ConfigListProps {
   onNew: () => void;
   onOpen: (configId: string) => void;
   onDelete: (configId: string) => void;
-  /** Start an assisted capture against the active tab (Req 2.2). */
-  onCapture: () => void;
   /** Export a config as a shareable JSON envelope (Req 7.1, 7.2). */
   onExport: (config: ConfigSummary) => void;
   /** Open the import-by-paste dialog (Req 7.3). */
@@ -47,7 +45,6 @@ export function ConfigList(props: ConfigListProps) {
     onNew,
     onOpen,
     onDelete,
-    onCapture,
     onExport,
     onImport,
     onEncryption,
@@ -69,9 +66,6 @@ export function ConfigList(props: ConfigListProps) {
       <div class="toolbar">
         <button class="primary" disabled={busy} onClick={onNew}>
           New config
-        </button>
-        <button disabled={busy} onClick={onCapture}>
-          Capture active tab
         </button>
         <button disabled={busy} onClick={onImport}>
           Import config
@@ -129,7 +123,7 @@ export function ConfigList(props: ConfigListProps) {
               ) : (
                 <span class="row-actions">
                   <button disabled={busy} onClick={() => onOpen(config.id)}>
-                    Open
+                    Edit
                   </button>
                   <button disabled={busy} onClick={() => onExport(config)}>
                     Export

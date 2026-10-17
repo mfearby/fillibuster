@@ -166,44 +166,46 @@ export function StepEditor(props: StepEditorProps) {
         </div>
       </div>
 
-      <div class="field">
-        <label for={`${idp}-type`}>Type</label>
-        <select
-          id={`${idp}-type`}
-          value={step.type}
-          disabled={disabled}
-          onChange={(e) =>
-            onChange(
-              changeStepType(
-                step,
-                (e.target as HTMLSelectElement).value as FieldStep['type'],
-              ),
-            )
-          }
-        >
-          {STEP_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for={`${idp}-type`}>Type</label>
+          <select
+            id={`${idp}-type`}
+            value={step.type}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange(
+                changeStepType(
+                  step,
+                  (e.target as HTMLSelectElement).value as FieldStep['type'],
+                ),
+              )
+            }
+          >
+            {STEP_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div class="field">
-        <label for={`${idp}-label`}>Label</label>
-        <input
-          id={`${idp}-label`}
-          type="text"
-          placeholder="Optional note"
-          value={step.label ?? ''}
-          disabled={disabled}
-          onInput={(e) =>
-            onChange({
-              ...step,
-              label: (e.target as HTMLInputElement).value || undefined,
-            })
-          }
-        />
+        <div class="field grow">
+          <label for={`${idp}-label`}>Label</label>
+          <input
+            id={`${idp}-label`}
+            type="text"
+            placeholder="Optional note"
+            value={step.label ?? ''}
+            disabled={disabled}
+            onInput={(e) =>
+              onChange({
+                ...step,
+                label: (e.target as HTMLInputElement).value || undefined,
+              })
+            }
+          />
+        </div>
       </div>
 
       <div class="field-row">

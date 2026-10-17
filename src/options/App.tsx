@@ -24,12 +24,9 @@
 
 import { useEffect, useState } from 'preact/hooks';
 
-import type { CaptureCandidate } from '../content/capture';
 import type { FillConfig } from '../core/schema';
-import browser from '../platform/browser';
 import { MessageType, type ConfigSummary } from '../platform/messages';
 import { sendUi } from '../platform/rpc';
-import { CaptureReview } from './CaptureReview';
 import { ConfigEditor } from './ConfigEditor';
 import { ConfigList } from './ConfigList';
 import { EncryptionSettings } from './EncryptionSettings';
@@ -39,14 +36,11 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 
 /**
  * The list view (default), the editor view for a specific config / new draft,
- * the capture-review view holding the candidates returned by an assisted
- * capture (task 12.3), or the export / import dialogs for sharing configs
- * (task 12.4).
+ * or the export / import dialogs for sharing configs (task 12.4).
  */
 type View =
   | { kind: 'list' }
   | { kind: 'editor'; configId?: string; draft?: FillConfig }
-  | { kind: 'capture-review'; candidates: CaptureCandidate[] }
   | { kind: 'export'; config: ConfigSummary }
   | { kind: 'import' }
   | { kind: 'encryption' };
@@ -120,46 +114,6 @@ export function App() {
     await refresh();
   }
 
-  /**
-   * Start an assisted capture against the active tab (Req 2.2). The options page
-   * runs in its own tab, so capture must target a DIFFERENT tab — the page under
-   * test. We query the active tab in the current window and ask the background
-   * to run capture there, then present the candidates for review (never
-   * auto-saving — Req 2.5). Restricted pages / no active tab surface a clear
-   * error.
-   */
-  async function startCapture() {
-    setBusy(true);
-    setError(null);
-    try {
-      const tabs = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const tabId = tabs[0]?.id;
-      if (tabId === undefined) {
-        setError('No active tab to capture from.');
-        return;
-      }
-      const result = await sendUi<CaptureCandidate[]>({
-        type: MessageType.CaptureTab,
-        tabId,
-      });
-      if (result.ok) {
-        setView({ kind: 'capture-review', candidates: result.value });
-      } else {
-        setError(result.error);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  /** Open a capture-built draft in the editor for final naming + explicit save (Req 2.5). */
-  function openDraft(draft: FillConfig) {
-    setView({ kind: 'editor', draft });
-  }
-
   /** Open the export dialog for a config (Req 7.1, 7.2, 7.7). */
   function openExport(config: ConfigSummary) {
     setView({ kind: 'export', config });
@@ -193,18 +147,6 @@ export function App() {
           draft={view.draft}
           onSaved={backToList}
           onBack={() => setView({ kind: 'list' })}
-        />
-      </main>
-    );
-  }
-
-  if (view.kind === 'capture-review') {
-    return (
-      <main>
-        <CaptureReview
-          candidates={view.candidates}
-          onCreate={openDraft}
-          onCancel={() => setView({ kind: 'list' })}
         />
       </main>
     );
@@ -256,7 +198,6 @@ export function App() {
           onNew={openNew}
           onOpen={openExisting}
           onDelete={deleteConfig}
-          onCapture={startCapture}
           onExport={openExport}
           onImport={openImport}
           onEncryption={openEncryption}

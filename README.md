@@ -7,6 +7,28 @@ are tired of re-entering the same data.
 One TypeScript + Preact source tree (`src/`) is bundled with Vite and packaged
 into distributable artifacts for both browsers from the same code.
 
+## Assisted capture (not yet wired up)
+
+The project includes an **assisted capture** engine — `src/content/capture.ts`
+scans a page for fillable controls and derives a stable selector plus current
+value for each, and `src/options/CaptureReview.tsx` is a UI for reviewing and
+pruning those candidates before saving them as a config. The background
+`CaptureTab` message handler drives it, and all of this is covered by tests.
+
+It is intentionally **not exposed in the UI yet.** The buttons that used to
+trigger it ("Capture this page" in the popup, "Capture active tab" in the
+options page) were removed because the flow was incomplete: from the options
+page the capture targeted the options tab itself rather than the page under
+test, and the popup button only opened the options page without capturing. Until
+a correct entry point is designed (reliably identifying the web tab to capture
+from, then opening review), configs are created manually in the options editor
+or via import.
+
+The engine, review component, and tests are kept in place deliberately so the
+feature can be finished later without rebuilding it. If you wire up a new entry
+point, it should send a `CaptureTab` request for the target tab and render
+`CaptureReview` with the returned candidates.
+
 ## Prerequisites
 
 - **Node.js** 18 or newer (the build targets `es2022` and uses ESM tooling).

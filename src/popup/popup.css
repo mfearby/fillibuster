@@ -45,6 +45,15 @@
   box-sizing: border-box;
 }
 
+/* All form controls follow the theme tokens, so dark mode gives a dark field
+   with light text instead of the browser's native form styling. */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  color: var(--fg);
+  background: var(--bg);
+}
+
 body {
   margin: 0;
   font-family:

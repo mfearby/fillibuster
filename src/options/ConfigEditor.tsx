@@ -71,8 +71,6 @@ export function ConfigEditor(props: ConfigEditorProps) {
   const [loading, setLoading] = useState(draft === undefined);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The type chosen in the "add step" control (independent of the draft).
-  const [addType, setAddType] = useState<FieldStep['type']>('text');
   // Current encryption status, so the "Encrypted" toggle is only offered when
   // encryption is enabled + unlocked (Req 8.6).
   const [encStatus, setEncStatus] = useState<EncryptionStatus | null>(null);
@@ -152,7 +150,8 @@ export function ConfigEditor(props: ConfigEditorProps) {
 
   function addStep() {
     if (!config) return;
-    patch({ steps: [...config.steps, newStep(addType)] });
+    // New steps default to a text step; the per-step Type selector changes it.
+    patch({ steps: [...config.steps, newStep('text')] });
   }
 
   function updateStep(index: number, step: FieldStep) {
@@ -296,29 +295,9 @@ export function ConfigEditor(props: ConfigEditorProps) {
       <div class="subsection">
         <div class="subsection-head">
           <h3>Steps</h3>
-          <span class="add-step">
-            <label class="visually-hidden" for="add-step-type">
-              New step type
-            </label>
-            <select
-              id="add-step-type"
-              value={addType}
-              disabled={saving}
-              onChange={(e) =>
-                setAddType(
-                  (e.target as HTMLSelectElement).value as FieldStep['type'],
-                )
-              }
-            >
-              <option value="text">text</option>
-              <option value="select">select</option>
-              <option value="check">check</option>
-              <option value="contenteditable">contenteditable</option>
-            </select>
-            <button type="button" disabled={saving} onClick={addStep}>
-              Add step
-            </button>
-          </span>
+          <button type="button" disabled={saving} onClick={addStep}>
+            Add step
+          </button>
         </div>
 
         {config.steps.length === 0 ? (

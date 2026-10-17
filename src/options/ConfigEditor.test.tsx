@@ -116,37 +116,37 @@ describe('ConfigEditor (task 12.2)', () => {
     });
   });
 
-  it('adds a step of each type and renders its type-specific fields', async () => {
+  it('adds steps (as text) and switches each via the per-step Type selector', async () => {
     render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
     await screen.findByLabelText('Name');
 
-    const addType = screen.getByLabelText('New step type') as HTMLSelectElement;
+    // New steps are always created as `text`; the type is changed per step via
+    // the step's own Type selector (the redundant 'new step type' dropdown was
+    // removed).
     const addBtn = screen.getByText('Add step');
 
-    // text
+    // One step, default text -> shows the Value field.
     fireEvent.click(addBtn);
+    expect(screen.getByLabelText('Type')).toBeTruthy();
     expect(screen.getByLabelText('Value')).toBeTruthy();
 
-    // select -> value + match by
-    fireEvent.change(addType, { target: { value: 'select' } });
-    fireEvent.click(addBtn);
+    // Switch it to select -> Match by appears.
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'select' } });
     expect(screen.getByLabelText('Match by')).toBeTruthy();
 
-    // check -> Checked checkbox
-    fireEvent.change(addType, { target: { value: 'check' } });
-    fireEvent.click(addBtn);
+    // Switch it to check -> Checked checkbox appears.
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'check' } });
     expect(screen.getByLabelText('Checked')).toBeTruthy();
 
-    // contenteditable -> Content textarea + Allow HTML
-    fireEvent.change(addType, { target: { value: 'contenteditable' } });
-    fireEvent.click(addBtn);
+    // Switch it to contenteditable -> Content + Allow HTML appear.
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'contenteditable' } });
     expect(screen.getByLabelText('Content')).toBeTruthy();
     expect(screen.getByLabelText('Allow HTML')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => {
       const types = lastSavedConfig().steps.map((s) => s.type);
-      expect(types).toEqual(['text', 'select', 'check', 'contenteditable']);
+      expect(types).toEqual(['contenteditable']);
     });
   });
 

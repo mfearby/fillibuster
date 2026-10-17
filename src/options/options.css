@@ -50,6 +50,17 @@
   box-sizing: border-box;
 }
 
+/* All form controls follow the theme tokens, so in dark mode they get a dark
+   field with light text (and white with dark text in light mode) rather than
+   the browser's native form styling. Per-component rules below only add
+   font/padding/border, so this base is the single source of field colours. */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  color: var(--fg);
+  background: var(--bg);
+}
+
 body {
   margin: 0;
   font-family:
@@ -448,4 +459,16 @@ input.grow {
   padding: 1px 8px;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* --- Match-rule widgets: match the look of the other form fields --- */
+
+/* Only font/padding/border here; colours come from the shared form-control
+   base rule above so these stay consistent with every other field. */
+.rule-row select,
+.rule-row input {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
