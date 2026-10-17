@@ -223,23 +223,53 @@ describe('encryption settings (Req 8.3, 8.4)', () => {
 });
 
 describe('session key (Req 8.8)', () => {
-  // A stand-in for a non-extractable CryptoKey; the fake session area stores it
-  // by reference, matching Chrome MV3's structured-clone of a CryptoKey.
-  const fakeKey = { type: 'secret', algorithm: { name: 'AES-GCM' } } as unknown as CryptoKey;
+  // A real extractable AES-GCM key, so setSessionKey can export its raw bytes
+  // and getSessionKey can re-import them (the round-trip the store now does to
+  // work around CryptoKey not structured-cloning reliably into storage.session).
+  async function realKey(): Promise<CryptoKey> {
+    return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
+      'encrypt',
+      'decrypt',
+    ]);
+  }
 
   it('getSessionKey returns null when locked', async () => {
     expect(await getSessionKey()).toBeNull();
   });
 
-  it('setSessionKey stores the key in storage.session, not storage.local', async () => {
-    await setSessionKey(fakeKey);
-    expect(session.set).toHaveBeenCalledWith({ [SESSION_KEY]: fakeKey });
+  it('stores the key as base64 bytes in storage.session, not storage.local', async () => {
+    await setSessionKey(await realKey());
+    // A base64 string is stored under the session key, not a CryptoKey object.
+    const stored = session.store.get(SESSION_KEY);
+    expect(typeof stored).toBe('string');
     expect(local.set).not.toHaveBeenCalled();
-    expect(await getSessionKey()).toBe(fakeKey);
+  });
+
+  it('round-trips a usable key through set -> get', async () => {
+    const key = await realKey();
+    await setSessionKey(key);
+    const restored = await getSessionKey();
+    expect(restored).not.toBeNull();
+
+    // The restored key must actually work for AES-GCM and agree with the
+    // original: encrypt with one, decrypt with the other.
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode('round-trip');
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      plaintext,
+    );
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      restored as CryptoKey,
+      ciphertext,
+    );
+    expect(new TextDecoder().decode(decrypted)).toBe('round-trip');
   });
 
   it('clearSessionKey forgets the key', async () => {
-    await setSessionKey(fakeKey);
+    await setSessionKey(await realKey());
     await clearSessionKey();
     expect(await getSessionKey()).toBeNull();
   });

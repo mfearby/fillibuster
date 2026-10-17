@@ -123,7 +123,13 @@ export async function deriveKey(
     },
     baseKey,
     { name: 'AES-GCM', length: KEY_BITS },
-    false,
+    // Extractable so the session layer can export the raw key bytes into
+    // memory-only `storage.session` and re-import them across service-worker
+    // restarts. A `CryptoKey` does not round-trip through `storage.session`
+    // consistently across MV3 engines — Firefox preserves it, but Chrome yields
+    // an inert object that fails `crypto.subtle.encrypt`'s CryptoKey check.
+    // Storing raw bytes is correct on both. The bytes never touch disk.
+    true,
     ['encrypt', 'decrypt'],
   );
 }

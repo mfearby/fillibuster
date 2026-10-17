@@ -216,24 +216,42 @@ export async function setVerifier(verifier: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Hold the derived encryption key in `storage.session` while a config is
- * unlocked (Req 8.8).
+ * Hold the derived encryption key while a config is unlocked (Req 8.8).
  *
- * Storing a `CryptoKey` this way relies on it being structured-cloneable into
- * session storage. Chrome MV3 supports placing a non-extractable `CryptoKey`
- * into `storage.session` (memory-only), which is exactly what {@link deriveKey}
- * produces, so the raw key material never touches disk and the passphrase is
- * never persisted. `storage.session` clears on browser close, so the unlock
- * naturally expires with the session.
+ * The key is stored as its raw 256-bit *bytes* (base64) in memory-only
+ * `storage.session`, NOT as a `CryptoKey` object. A `CryptoKey` does not
+ * round-trip through `storage.session` consistently across MV3 engines:
+ * Firefox preserves it, but Chrome returns an inert object that fails
+ * `crypto.subtle.encrypt`'s CryptoKey check (observed first-hand). Storing raw
+ * bytes sidesteps the per-engine clone behavior entirely — they clone trivially
+ * and are re-imported to a live AES-GCM key on read, so one code path is correct
+ * on both. `storage.session` is memory-only and clears on browser close, so the
+ * bytes never touch disk and the unlock naturally expires with the session; the
+ * passphrase is never persisted.
  */
 export async function setSessionKey(key: CryptoKey): Promise<void> {
-  await browser.storage.session.set({ [SESSION_KEY]: key });
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+  let binary = '';
+  for (let i = 0; i < raw.length; i++) binary += String.fromCharCode(raw[i]!);
+  await browser.storage.session.set({ [SESSION_KEY]: btoa(binary) });
 }
 
-/** Read the unlocked key from `storage.session`, or `null` if the session is locked. */
+/**
+ * Read the unlocked key from `storage.session`, re-importing the stored raw
+ * bytes into a live non-extractable AES-GCM `CryptoKey`. Returns `null` when
+ * the session is locked (no stored bytes).
+ */
 export async function getSessionKey(): Promise<CryptoKey | null> {
   const stored = await browser.storage.session.get(SESSION_KEY);
-  return (stored[SESSION_KEY] as CryptoKey | undefined) ?? null;
+  const b64 = stored[SESSION_KEY] as string | undefined;
+  if (!b64) return null;
+  const binary = atob(b64);
+  const raw = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) raw[i] = binary.charCodeAt(i);
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, [
+    'encrypt',
+    'decrypt',
+  ]);
 }
 
 /** Forget the unlocked key (lock the session). */
