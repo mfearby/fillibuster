@@ -280,7 +280,7 @@ h3 {
 .field-row {
   display: flex;
   gap: 12px;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .field-row .field {
@@ -425,4 +425,11 @@ input.grow {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 8px;
+}
+
+/* --- Field hint (small helper text under an input) --- */
+
+.field-hint {
+  font-size: 12px;
+  line-height: 1.4;
 }

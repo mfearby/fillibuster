@@ -56,6 +56,43 @@ describe('resolveTarget', () => {
     expect(resolveTarget({ by: 'name', value: 'absent' }, document)).toBeNull();
     expect(resolveTarget({ by: 'css', value: '#absent' }, document)).toBeNull();
   });
+
+  it('id: tries a comma-list of ids in order, first present wins', () => {
+    mount('<input id="second" />');
+    // First candidate is absent; resolution falls through to the second.
+    expect(
+      resolveTarget({ by: 'id', value: 'first, second' }, document),
+    ).toBe(document.getElementById('second'));
+  });
+
+  it('id: honors list order, not document order, when several match', () => {
+    // Both present; the one listed first wins even though it is second in the DOM.
+    mount('<input id="beta" /><input id="alpha" />');
+    expect(
+      resolveTarget({ by: 'id', value: 'alpha, beta' }, document),
+    ).toBe(document.getElementById('alpha'));
+  });
+
+  it('id: trims whitespace around candidates', () => {
+    mount('<input id="target" />');
+    expect(
+      resolveTarget({ by: 'id', value: '  missing ,   target  ' }, document),
+    ).toBe(document.getElementById('target'));
+  });
+
+  it('name: tries a comma-list of names in order', () => {
+    mount('<input name="contact2" />');
+    expect(
+      resolveTarget({ by: 'name', value: 'contact1, contact2' }, document),
+    ).toBe(document.getElementsByName('contact2')[0]);
+  });
+
+  it('single id with no comma behaves as before', () => {
+    mount('<input id="solo" />');
+    expect(resolveTarget({ by: 'id', value: 'solo' }, document)).toBe(
+      document.getElementById('solo'),
+    );
+  });
 });
 
 describe('applySteps — text', () => {

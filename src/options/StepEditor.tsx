@@ -51,6 +51,34 @@ const STEP_TYPES: FieldStep['type'][] = [
 
 const SELECTOR_BYS: Selector['by'][] = ['id', 'name', 'css'];
 
+/** Placeholder text for the target value input, per selector kind. */
+function targetPlaceholder(by: Selector['by']): string {
+  switch (by) {
+    case 'id':
+      return 'emailField  (or a comma list of fallback ids)';
+    case 'name':
+      return 'user[email]  (or a comma list of fallback names)';
+    case 'css':
+      return '#email, input[name="x"], .selector';
+  }
+}
+
+/**
+ * Hint shown under the target value input. For `id`/`name`, document the
+ * comma-separated fallback list (tried in order, first present wins) so one
+ * step can cover pages that use different ids/names for the same control.
+ */
+function targetHint(by: Selector['by']): string {
+  switch (by) {
+    case 'id':
+      return 'A single id, or several ids separated by commas — tried in order, first found is used.';
+    case 'name':
+      return 'A single name, or several names separated by commas — tried in order, first found is used.';
+    case 'css':
+      return 'A CSS selector. A comma list matches the first in page order.';
+  }
+}
+
 /**
  * Rebuild a step under a new `type`, keeping the shared identity (id, target,
  * label) and resetting the type-specific fields to their defaults so the result
@@ -204,13 +232,17 @@ export function StepEditor(props: StepEditorProps) {
           <input
             id={`${idp}-target`}
             type="text"
-            placeholder="#email, user[name], .some-selector"
+            placeholder={targetPlaceholder(step.target.by)}
             value={step.target.value}
             disabled={disabled}
+            aria-describedby={`${idp}-target-hint`}
             onInput={(e) =>
               updateTarget({ value: (e.target as HTMLInputElement).value })
             }
           />
+          <small id={`${idp}-target-hint`} class="field-hint muted">
+            {targetHint(step.target.by)}
+          </small>
         </div>
       </div>
 

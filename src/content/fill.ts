@@ -62,6 +62,14 @@ export const NOT_FOUND_REASON = 'element not found';
  * `getElementById`/`getElementsByName` live on `Document`, so when `root` is an
  * element (or otherwise lacks them) we fall back to attribute-based
  * `querySelector` lookups that behave equivalently.
+ *
+ * Fallback lists (`id` and `name` only): the value may be a comma-separated
+ * list of candidates, tried IN LIST ORDER with the first present element
+ * winning. This lets one step target pages that use different ids/names for the
+ * same logical control — e.g. a Yes/No radio whose id varies across otherwise
+ * identical pages — without writing CSS. A value with no comma is a single
+ * candidate and behaves exactly as before. `css` is left untouched: it already
+ * supports comma lists natively (though matched in document, not list, order).
  */
 export function resolveTarget(
   selector: Selector,
@@ -69,18 +77,26 @@ export function resolveTarget(
 ): Element | null {
   switch (selector.by) {
     case 'id': {
-      if (typeof (root as Document).getElementById === 'function') {
-        return (root as Document).getElementById(selector.value);
+      for (const value of splitCandidates(selector.value)) {
+        const el =
+          typeof (root as Document).getElementById === 'function'
+            ? (root as Document).getElementById(value)
+            : (root as Element).querySelector(`#${cssEscape(value)}`);
+        if (el) return el;
       }
-      return (root as Element).querySelector(`#${cssEscape(selector.value)}`);
+      return null;
     }
     case 'name': {
-      if (typeof (root as Document).getElementsByName === 'function') {
-        return (root as Document).getElementsByName(selector.value)[0] ?? null;
+      for (const value of splitCandidates(selector.value)) {
+        const el =
+          typeof (root as Document).getElementsByName === 'function'
+            ? ((root as Document).getElementsByName(value)[0] ?? null)
+            : (root as Element).querySelector(
+                `[name="${cssAttrEscape(value)}"]`,
+              );
+        if (el) return el;
       }
-      return (root as Element).querySelector(
-        `[name="${cssAttrEscape(selector.value)}"]`,
-      );
+      return null;
     }
     case 'css':
       return root.querySelector(selector.value);
@@ -88,6 +104,20 @@ export function resolveTarget(
       // Unknown selector kind — treat as unresolvable rather than throwing.
       return null;
   }
+}
+
+/**
+ * Split an `id`/`name` selector value into ordered candidates on commas,
+ * trimming each and dropping empties. A value without a comma yields a single
+ * candidate, so the common single-id/name case is unchanged. (Literal commas in
+ * an id/name attribute are effectively nonexistent in real HTML, so comma is
+ * always treated as the separator.)
+ */
+function splitCandidates(value: string): string[] {
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
 }
 
 /**
