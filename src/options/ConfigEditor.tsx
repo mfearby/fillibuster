@@ -89,6 +89,9 @@ export function ConfigEditor(props: ConfigEditorProps) {
   // pending unlock prompt (Req 8.8).
   const [needsUnlock, setNeedsUnlock] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  // Id of a just-added step that should scroll into view and focus its first
+  // field when it mounts; cleared once that StepEditor consumes it.
+  const [focusStepId, setFocusStepId] = useState<string | null>(null);
 
   /**
    * Load the stored config for editing (Req 6.2). The background decrypts an
@@ -162,7 +165,11 @@ export function ConfigEditor(props: ConfigEditorProps) {
   function addStep() {
     if (!config) return;
     // New steps default to a text step; the per-step Type selector changes it.
-    patch({ steps: [...config.steps, newStep('text')] });
+    const step = newStep('text');
+    patch({ steps: [...config.steps, step] });
+    // Ask the matching StepEditor to scroll into view and focus its first field
+    // once it mounts, so adding a step lands the cursor where the user types.
+    setFocusStepId(step.id);
   }
 
   function updateStep(index: number, step: FieldStep) {
@@ -323,10 +330,12 @@ export function ConfigEditor(props: ConfigEditorProps) {
                 isFirst={index === 0}
                 isLast={index === config.steps.length - 1}
                 disabled={saving}
+                autoFocus={step.id === focusStepId}
                 onChange={(s) => updateStep(index, s)}
                 onMoveUp={() => moveStep(index, -1)}
                 onMoveDown={() => moveStep(index, 1)}
                 onRemove={() => removeStep(index)}
+                onFocused={() => setFocusStepId(null)}
               />
             ))}
           </ul>

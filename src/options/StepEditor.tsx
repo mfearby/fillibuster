@@ -17,6 +17,8 @@
  * Requirements: 2.1, 6.3, 6.4
  */
 
+import { useEffect, useRef } from 'preact/hooks';
+
 import type {
   AutocompleteStep,
   ButtonStep,
@@ -37,10 +39,18 @@ export interface StepEditorProps {
   /** True when this is the last step (disables "move down"). */
   isLast: boolean;
   disabled?: boolean;
+  /**
+   * When true, this step scrolls into view and focuses its first field on
+   * mount — set by the parent for a freshly-added step so the cursor lands
+   * where the user will type.
+   */
+  autoFocus?: boolean;
   onChange: (step: FieldStep) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
+  /** Called once the one-shot {@link StepEditorProps.autoFocus} has been honored. */
+  onFocused?: () => void;
 }
 
 const STEP_TYPES: FieldStep['type'][] = [
@@ -160,10 +170,12 @@ export function StepEditor(props: StepEditorProps) {
     isFirst,
     isLast,
     disabled,
+    autoFocus,
     onChange,
     onMoveUp,
     onMoveDown,
     onRemove,
+    onFocused,
   } = props;
 
   const idp = `step-${index}`;
@@ -172,12 +184,33 @@ export function StepEditor(props: StepEditorProps) {
   // "Target by / Target value" row is hidden in that mode.
   const buttonByText = step.type === 'button' && (step.matchBy ?? 'selector') === 'text';
 
+  const rowRef = useRef<HTMLLIElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
+
+  // When the parent adds this step, scroll it into view and focus its first
+  // field (the Type selector) so typing can begin immediately. One-shot:
+  // `onFocused` tells the parent to clear its request so a later re-render
+  // doesn't re-scroll.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const row = rowRef.current;
+    // `scrollIntoView` is absent in some environments (e.g. jsdom); guard it so
+    // the focus still happens and tests don't throw.
+    if (row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    typeRef.current?.focus();
+    onFocused?.();
+    // Run once on mount for an auto-focused step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function updateTarget(patch: Partial<Selector>) {
     onChange({ ...step, target: { ...step.target, ...patch } });
   }
 
   return (
-    <li class="step-row">
+    <li class="step-row" ref={rowRef}>
       <div class="step-head">
         <span class="step-num">Step {index + 1}</span>
         <div class="step-head-actions">
@@ -214,6 +247,7 @@ export function StepEditor(props: StepEditorProps) {
           <label for={`${idp}-type`}>Type</label>
           <select
             id={`${idp}-type`}
+            ref={typeRef}
             value={step.type}
             disabled={disabled}
             onChange={(e) =>

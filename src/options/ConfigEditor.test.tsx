@@ -150,6 +150,16 @@ describe('ConfigEditor (task 12.2)', () => {
     });
   });
 
+  it('focuses the new step\'s Type selector when a step is added', async () => {
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByText('Add step'));
+
+    const type = screen.getByLabelText('Type') as HTMLSelectElement;
+    await waitFor(() => expect(document.activeElement).toBe(type));
+  });
+
   it('edits a step\'s common and type-specific fields', async () => {
     render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
     await screen.findByLabelText('Name');
