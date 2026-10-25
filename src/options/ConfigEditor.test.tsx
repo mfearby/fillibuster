@@ -172,7 +172,7 @@ describe('ConfigEditor (task 12.2)', () => {
     fireEvent.change(screen.getByLabelText('Target by'), {
       target: { value: 'name' },
     });
-    fireEvent.input(screen.getByLabelText('Label'), {
+    fireEvent.input(screen.getByLabelText('Step 1 description'), {
       target: { value: 'Email field' },
     });
     fireEvent.input(screen.getByLabelText('Value'), {
@@ -229,9 +229,9 @@ describe('ConfigEditor (task 12.2)', () => {
     // Add three text steps and label them A, B, C so we can track order.
     for (const label of ['A', 'B', 'C']) {
       fireEvent.click(addBtn);
-      const labels = screen.getAllByLabelText('Label') as HTMLInputElement[];
+      const labels = screen.getAllByLabelText(/ description$/) as HTMLInputElement[];
       const last = labels[labels.length - 1];
-      if (!last) throw new Error('expected a Label input');
+      if (!last) throw new Error('expected a description input');
       fireEvent.input(last, { target: { value: label } });
     }
 

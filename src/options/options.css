@@ -205,6 +205,12 @@ button:disabled {
   font-weight: 600;
 }
 
+/* Within a step editor panel, field labels use the muted colour to match the
+   step number and inline "Type" label, keeping each step visually calm. */
+.step-row .field label {
+  color: var(--muted);
+}
+
 .field input {
   font: inherit;
   padding: 8px 10px;
@@ -274,18 +280,88 @@ h3 {
 .step-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .step-num {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  min-width: 1.25em;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Inline "Type" label + its dropdown, living in the step header row. */
+.step-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.step-type select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* The free-text description fills the space between Type and the actions. */
+.step-description {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 .step-head-actions {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
+}
+
+/* A label sitting to the LEFT of its control (inline), used by the Target
+   by/value row so each field is one compact line instead of a stacked pair. */
+.field-inline-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-inline-left > span {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Match the padded, rounded look of the stacked `.field` controls — these
+   controls sit directly in the inline label, not inside a `.field`, so the
+   `.field select/input` rules don't reach them. */
+.field-inline-left select,
+.field-inline-left input {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* When an inline-left field lives inside a `.field` (a full-width column), let
+   its text input fill the remaining width after the caption — e.g. the Target
+   value row and the radio step's Value field. */
+.field > .field-inline-left {
+  width: 100%;
+}
+
+.field > .field-inline-left > input {
+  flex: 1;
+  min-width: 0;
 }
 
 .field-row {

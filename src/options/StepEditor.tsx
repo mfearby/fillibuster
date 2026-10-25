@@ -212,7 +212,47 @@ export function StepEditor(props: StepEditorProps) {
   return (
     <li class="step-row" ref={rowRef}>
       <div class="step-head">
-        <span class="step-num">Step {index + 1}</span>
+        <span class="step-num">{index + 1}</span>
+
+        <label class="step-type" for={`${idp}-type`}>
+          <span>Type</span>
+          <select
+            id={`${idp}-type`}
+            ref={typeRef}
+            value={step.type}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange(
+                changeStepType(
+                  step,
+                  (e.target as HTMLSelectElement).value as FieldStep['type'],
+                ),
+              )
+            }
+          >
+            {STEP_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {STEP_TYPE_LABELS[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <input
+          class="step-description grow"
+          type="text"
+          placeholder="Description"
+          aria-label={`Step ${index + 1} description`}
+          value={step.label ?? ''}
+          disabled={disabled}
+          onInput={(e) =>
+            onChange({
+              ...step,
+              label: (e.target as HTMLInputElement).value || undefined,
+            })
+          }
+        />
+
         <div class="step-head-actions">
           <button
             type="button"
@@ -242,49 +282,6 @@ export function StepEditor(props: StepEditorProps) {
         </div>
       </div>
 
-      <div class="field-row">
-        <div class="field">
-          <label for={`${idp}-type`}>Type</label>
-          <select
-            id={`${idp}-type`}
-            ref={typeRef}
-            value={step.type}
-            disabled={disabled}
-            onChange={(e) =>
-              onChange(
-                changeStepType(
-                  step,
-                  (e.target as HTMLSelectElement).value as FieldStep['type'],
-                ),
-              )
-            }
-          >
-            {STEP_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {STEP_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div class="field grow">
-          <label for={`${idp}-label`}>Label</label>
-          <input
-            id={`${idp}-label`}
-            type="text"
-            placeholder="Optional note"
-            value={step.label ?? ''}
-            disabled={disabled}
-            onInput={(e) =>
-              onChange({
-                ...step,
-                label: (e.target as HTMLInputElement).value || undefined,
-              })
-            }
-          />
-        </div>
-      </div>
-
       {step.type === 'button' && (
         <div class="field">
           <label for={`${idp}-btn-matchby`}>Find button by</label>
@@ -307,9 +304,9 @@ export function StepEditor(props: StepEditorProps) {
       )}
 
       {!buttonByText && (
-      <div class="field-row">
-        <div class="field">
-          <label for={`${idp}-by`}>Target by</label>
+      <div class="field-row target-row">
+        <label class="field-inline-left" for={`${idp}-by`}>
+          <span>Target by</span>
           <select
             id={`${idp}-by`}
             value={step.target.by}
@@ -326,21 +323,23 @@ export function StepEditor(props: StepEditorProps) {
               </option>
             ))}
           </select>
-        </div>
+        </label>
 
         <div class="field grow">
-          <label for={`${idp}-target`}>Target value</label>
-          <input
-            id={`${idp}-target`}
-            type="text"
-            placeholder={targetPlaceholder(step.target.by)}
-            value={step.target.value}
-            disabled={disabled}
-            aria-describedby={`${idp}-target-hint`}
-            onInput={(e) =>
-              updateTarget({ value: (e.target as HTMLInputElement).value })
-            }
-          />
+          <label class="field-inline-left" for={`${idp}-target`}>
+            <span>Target value</span>
+            <input
+              id={`${idp}-target`}
+              type="text"
+              placeholder={targetPlaceholder(step.target.by)}
+              value={step.target.value}
+              disabled={disabled}
+              aria-describedby={`${idp}-target-hint`}
+              onInput={(e) =>
+                updateTarget({ value: (e.target as HTMLInputElement).value })
+              }
+            />
+          </label>
           <small id={`${idp}-target-hint`} class="field-hint muted">
             {targetHint(step.target.by)}
           </small>
@@ -443,20 +442,22 @@ function StepTypeFields(props: {
     case 'radio':
       return (
         <div class="field">
-          <label for={`${idp}-value`}>Value</label>
-          <input
-            id={`${idp}-value`}
-            type="text"
-            placeholder="The value of the radio option to select"
-            value={step.value}
-            disabled={disabled}
-            onInput={(e) =>
-              onChange({
-                ...step,
-                value: (e.target as HTMLInputElement).value,
-              })
-            }
-          />
+          <label class="field-inline-left" for={`${idp}-value`}>
+            <span>Value</span>
+            <input
+              id={`${idp}-value`}
+              type="text"
+              placeholder="The value of the radio option to select"
+              value={step.value}
+              disabled={disabled}
+              onInput={(e) =>
+                onChange({
+                  ...step,
+                  value: (e.target as HTMLInputElement).value,
+                })
+              }
+            />
+          </label>
         </div>
       );
 
