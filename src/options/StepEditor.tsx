@@ -501,25 +501,27 @@ function StepTypeFields(props: {
       return (
         <>
           <div class="field">
-            <label for={`${idp}-value`}>Text to type</label>
-            <input
-              id={`${idp}-value`}
-              type="text"
-              placeholder="e.g. 1600 Pennsylvania Ave"
-              value={step.value}
-              disabled={disabled}
-              onInput={(e) =>
-                onChange({
-                  ...step,
-                  value: (e.target as HTMLInputElement).value,
-                })
-              }
-            />
+            <label class="field-inline-left" for={`${idp}-value`}>
+              <span>Text to type</span>
+              <input
+                id={`${idp}-value`}
+                type="text"
+                placeholder="e.g. 1600 Pennsylvania Ave"
+                value={step.value}
+                disabled={disabled}
+                onInput={(e) =>
+                  onChange({
+                    ...step,
+                    value: (e.target as HTMLInputElement).value,
+                  })
+                }
+              />
+            </label>
           </div>
 
           <div class="field-row">
-            <div class="field">
-              <label for={`${idp}-opt-by`}>Options by</label>
+            <label class="field-inline-left" for={`${idp}-opt-by`}>
+              <span>Options by</span>
               <select
                 id={`${idp}-opt-by`}
                 value={step.optionTarget.by}
@@ -540,59 +542,74 @@ function StepTypeFields(props: {
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
 
             <div class="field grow">
-              <label for={`${idp}-opt-target`}>Options selector</label>
-              <input
-                id={`${idp}-opt-target`}
-                type="text"
-                placeholder='[role="option"]'
-                value={step.optionTarget.value}
-                disabled={disabled}
-                aria-describedby={`${idp}-opt-target-hint`}
-                onInput={(e) =>
-                  onChange({
-                    ...step,
-                    optionTarget: {
-                      ...step.optionTarget,
-                      value: (e.target as HTMLInputElement).value,
-                    },
-                  })
-                }
-              />
-              <small id={`${idp}-opt-target-hint`} class="field-hint muted">
-                Locates the rendered suggestion items that appear after typing.
-              </small>
+              <label class="field-inline-left" for={`${idp}-opt-target`}>
+                <span>Options selector</span>
+                <input
+                  id={`${idp}-opt-target`}
+                  type="text"
+                  placeholder='[role="option"]'
+                  value={step.optionTarget.value}
+                  disabled={disabled}
+                  aria-describedby={`${idp}-opt-target-hint`}
+                  onInput={(e) =>
+                    onChange({
+                      ...step,
+                      optionTarget: {
+                        ...step.optionTarget,
+                        value: (e.target as HTMLInputElement).value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <div class="field-inline-hint">
+                <span class="field-inline-spacer" aria-hidden="true">
+                  Options selector
+                </span>
+                <small id={`${idp}-opt-target-hint`} class="field-hint muted">
+                  Locates the rendered suggestion items that appear after typing.
+                </small>
+              </div>
             </div>
           </div>
 
           <div class="field-row">
             <div class="field grow">
-              <label for={`${idp}-opt-match`}>Option text contains</label>
-              <input
-                id={`${idp}-opt-match`}
-                type="text"
-                placeholder="Text of the option to click"
-                value={step.optionMatch}
-                disabled={disabled}
-                aria-describedby={`${idp}-opt-match-hint`}
-                onInput={(e) =>
-                  onChange({
-                    ...step,
-                    optionMatch: (e.target as HTMLInputElement).value,
-                  })
-                }
-              />
-              <small id={`${idp}-opt-match-hint`} class="field-hint muted">
-                Case-insensitive substring; the first matching option is clicked.
-              </small>
+              <label class="field-inline-left" for={`${idp}-opt-match`}>
+                <span>Option text contains</span>
+                <input
+                  id={`${idp}-opt-match`}
+                  type="text"
+                  placeholder="Text of the option to click"
+                  value={step.optionMatch}
+                  disabled={disabled}
+                  aria-describedby={`${idp}-opt-match-hint`}
+                  onInput={(e) =>
+                    onChange({
+                      ...step,
+                      optionMatch: (e.target as HTMLInputElement).value,
+                    })
+                  }
+                />
+              </label>
+              <div class="field-inline-hint">
+                <span class="field-inline-spacer" aria-hidden="true">
+                  Option text contains
+                </span>
+                <small id={`${idp}-opt-match-hint`} class="field-hint muted">
+                  Case-insensitive substring; the first matching option is clicked.
+                </small>
+              </div>
             </div>
 
-            <div class="field">
-              <label for={`${idp}-timeout`}>Wait (ms)</label>
+            <label class="field-inline-left" for={`${idp}-timeout`}>
+              <span>Wait (ms)</span>
               <input
                 id={`${idp}-timeout`}
+                class="timeout-input"
                 type="number"
                 min={0}
                 step={100}
@@ -606,7 +623,7 @@ function StepTypeFields(props: {
                   });
                 }}
               />
-            </div>
+            </label>
           </div>
 
           <div class="field field-inline">
@@ -638,21 +655,23 @@ function StepTypeFields(props: {
       const matchBy = step.matchBy ?? 'selector';
       return matchBy === 'text' ? (
         <div class="field">
-          <label for={`${idp}-btn-text`}>Button text</label>
-          <input
-            id={`${idp}-btn-text`}
-            type="text"
-            placeholder="e.g. Accept, Submit, Continue"
-            value={step.text ?? ''}
-            disabled={disabled}
-            aria-describedby={`${idp}-btn-text-hint`}
-            onInput={(e) =>
-              onChange({
-                ...step,
-                text: (e.target as HTMLInputElement).value,
-              })
-            }
-          />
+          <label class="field-inline-left" for={`${idp}-btn-text`}>
+            <span>Button text</span>
+            <input
+              id={`${idp}-btn-text`}
+              type="text"
+              placeholder="e.g. Accept, Submit, Continue"
+              value={step.text ?? ''}
+              disabled={disabled}
+              aria-describedby={`${idp}-btn-text-hint`}
+              onInput={(e) =>
+                onChange({
+                  ...step,
+                  text: (e.target as HTMLInputElement).value,
+                })
+              }
+            />
+          </label>
           <small id={`${idp}-btn-text-hint`} class="field-hint muted">
             Matches the button's visible text exactly (case-insensitive).
           </small>

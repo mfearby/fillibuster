@@ -352,6 +352,30 @@ h3 {
   border-radius: 6px;
 }
 
+/* The autocomplete "Wait (ms)" number field is short — keep it compact so it
+   doesn't stretch across the row. */
+.timeout-input {
+  width: 7ch;
+}
+
+/* Align a field's hint under its INPUT rather than its caption. An invisible
+   spacer mirrors the caption's box (same width + the inline-left gap), so the
+   hint that follows starts exactly where the input does — an "empty cell" sits
+   under the caption. The spacer copies the caption text so its width tracks the
+   label automatically. */
+.field-inline-hint {
+  display: flex;
+  gap: 8px;
+}
+
+.field-inline-hint .field-inline-spacer {
+  /* Match `.field-inline-left > span` so the spacer is the caption's width. */
+  font-weight: 600;
+  white-space: nowrap;
+  visibility: hidden;
+  flex-shrink: 0;
+}
+
 /* When an inline-left field lives inside a `.field` (a full-width column), let
    its text input fill the remaining width after the caption — e.g. the Target
    value row and the radio step's Value field. */
