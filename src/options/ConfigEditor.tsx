@@ -61,6 +61,15 @@ function newStep(type: FieldStep['type']): FieldStep {
       return { ...base, type: 'radio', value: '' };
     case 'contenteditable':
       return { ...base, type: 'contenteditable', html: '', allowHtml: false };
+    case 'autocomplete':
+      return {
+        ...base,
+        type: 'autocomplete',
+        value: '',
+        optionTarget: { by: 'css', value: '[role="option"]' },
+        optionMatch: '',
+        timeoutMs: 2000,
+      };
   }
 }
 

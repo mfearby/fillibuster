@@ -13,6 +13,7 @@
  */
 
 import type {
+  AutocompleteStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -47,7 +48,14 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-const STEP_TYPES = ['text', 'select', 'check', 'radio', 'contenteditable'] as const;
+const STEP_TYPES = [
+  'text',
+  'select',
+  'check',
+  'radio',
+  'contenteditable',
+  'autocomplete',
+] as const;
 const SELECTOR_BY = ['id', 'name', 'css'] as const;
 const RULE_KINDS = ['exact', 'prefix', 'glob'] as const;
 const ERROR_STRATEGIES = ['stop', 'continue'] as const;
@@ -124,6 +132,34 @@ function validateStep(v: unknown, path: string): Result<FieldStep> {
       }
       const step: ContentEditableStep = { ...base, type: 'contenteditable', html: v['html'] };
       if (typeof v['allowHtml'] === 'boolean') step.allowHtml = v['allowHtml'];
+      return ok(step);
+    }
+    case 'autocomplete': {
+      if (typeof v['value'] !== 'string') return err(`${path}.value must be a string`);
+      const optionTarget = validateSelector(v['optionTarget'], `${path}.optionTarget`);
+      if (!optionTarget.ok) return optionTarget;
+      if (typeof v['optionMatch'] !== 'string' || v['optionMatch'].length === 0) {
+        return err(`${path}.optionMatch must be a non-empty string`);
+      }
+      if (
+        typeof v['timeoutMs'] !== 'number' ||
+        !Number.isFinite(v['timeoutMs']) ||
+        v['timeoutMs'] < 0
+      ) {
+        return err(`${path}.timeoutMs must be a non-negative finite number`);
+      }
+      if (v['simulateTyping'] !== undefined && typeof v['simulateTyping'] !== 'boolean') {
+        return err(`${path}.simulateTyping must be a boolean when present`);
+      }
+      const step: AutocompleteStep = {
+        ...base,
+        type: 'autocomplete',
+        value: v['value'],
+        optionTarget: optionTarget.value,
+        optionMatch: v['optionMatch'],
+        timeoutMs: v['timeoutMs'],
+      };
+      if (typeof v['simulateTyping'] === 'boolean') step.simulateTyping = v['simulateTyping'];
       return ok(step);
     }
     // Unreachable: `type` is narrowed to STEP_TYPES above.

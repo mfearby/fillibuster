@@ -4,10 +4,11 @@
  * These types define the shape of a saved "fill config", how configs are stored
  * in `storage.local`, and the export/at-rest envelopes. They are the heart of the
  * app: validated, imported/exported, and (optionally) encrypted. The `FieldStep`
- * discriminated union is intentionally open-ended so v2 step types (e.g. async
- * autocomplete) can be added without breaking v1 configs (Req 3.5).
+ * discriminated union is intentionally open-ended so new step types (e.g. the
+ * async {@link AutocompleteStep}) can be added without breaking older configs
+ * (Req 3.5).
  *
- * Requirements: 2.1, 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 8.6, 9.2, 9.3
+ * Requirements: 2.1, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.1, 8.6, 9.2, 9.3
  */
 
 /** Bumped when the persisted/exported schema changes incompatibly (Req 7.6). */
@@ -53,7 +54,8 @@ export type FieldStep =
   | SelectStep
   | CheckStep
   | RadioStep
-  | ContentEditableStep;
+  | ContentEditableStep
+  | AutocompleteStep;
 
 export interface BaseStep {
   id: string;
@@ -112,6 +114,43 @@ export interface ContentEditableStep extends BaseStep {
   /** Set as textContent unless `allowHtml` is true. */
   html: string;
   allowHtml?: boolean;
+}
+
+/**
+ * Async autocomplete / typeahead combobox (Req 3.6).
+ *
+ * Unlike a native {@link SelectStep}, the options here are not present in the
+ * DOM up front: typing into a text input triggers the page to asynchronously
+ * fetch and render a suggestion list (e.g. an ARIA combobox listbox, a
+ * Google-Places-style `.pac-container`, a MUI Autocomplete popper). This step
+ * types `value` into `target`, waits up to `timeoutMs` for the option elements
+ * to appear, then clicks the first whose visible text matches `optionMatch`.
+ *
+ * `optionTarget` locates the rendered option elements (CSS is the natural fit,
+ * e.g. `[role="option"]`). `optionMatch` is compared case-insensitively as a
+ * substring of each option's visible text; the FIRST match in document order
+ * wins. `timeoutMs` bounds how long we poll before failing the step.
+ */
+export interface AutocompleteStep extends BaseStep {
+  type: "autocomplete";
+  /** Text typed into the `target` input to trigger suggestions. */
+  value: string;
+  /** How to locate the rendered option elements (typically CSS `[role="option"]`). */
+  optionTarget: Selector;
+  /** Substring (case-insensitive) matched against each option's visible text. */
+  optionMatch: string;
+  /** Max milliseconds to wait for options to appear before failing. */
+  timeoutMs: number;
+  /**
+   * When true, simulate a real keystroke sequence (focus, then per-character
+   * keydown/input/keyup) instead of setting the value in one shot. Some
+   * autocomplete widgets — notably `react-autosuggest`, which only fetches when
+   * it classifies the change as `method: 'type'` and only while the input is
+   * focused — ignore a single programmatic value assignment. Opt in for those;
+   * the default one-shot path is faster and works for most inputs. Optional so
+   * existing configs keep the fast path (Req 3.5).
+   */
+  simulateTyping?: boolean;
 }
 
 /**

@@ -18,6 +18,7 @@
  */
 
 import type {
+  AutocompleteStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -47,7 +48,11 @@ const STEP_TYPES: FieldStep['type'][] = [
   'check',
   'radio',
   'contenteditable',
+  'autocomplete',
 ];
+
+/** Default wait (ms) for a newly-created autocomplete step. */
+const DEFAULT_AUTOCOMPLETE_TIMEOUT_MS = 2000;
 
 const SELECTOR_BYS: Selector['by'][] = ['id', 'name', 'css'];
 
@@ -111,6 +116,15 @@ export function changeStepType(
         html: '',
         allowHtml: false,
       } satisfies ContentEditableStep;
+    case 'autocomplete':
+      return {
+        ...base,
+        type: 'autocomplete',
+        value: '',
+        optionTarget: { by: 'css', value: '[role="option"]' },
+        optionMatch: '',
+        timeoutMs: DEFAULT_AUTOCOMPLETE_TIMEOUT_MS,
+      } satisfies AutocompleteStep;
   }
 }
 
@@ -393,6 +407,141 @@ function StepTypeFields(props: {
             />
             <label for={`${idp}-allowhtml`}>Allow HTML</label>
           </div>
+        </>
+      );
+
+    case 'autocomplete':
+      return (
+        <>
+          <div class="field">
+            <label for={`${idp}-value`}>Text to type</label>
+            <input
+              id={`${idp}-value`}
+              type="text"
+              placeholder="e.g. 1600 Pennsylvania Ave"
+              value={step.value}
+              disabled={disabled}
+              onInput={(e) =>
+                onChange({
+                  ...step,
+                  value: (e.target as HTMLInputElement).value,
+                })
+              }
+            />
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for={`${idp}-opt-by`}>Options by</label>
+              <select
+                id={`${idp}-opt-by`}
+                value={step.optionTarget.by}
+                disabled={disabled}
+                onChange={(e) =>
+                  onChange({
+                    ...step,
+                    optionTarget: {
+                      ...step.optionTarget,
+                      by: (e.target as HTMLSelectElement).value as Selector['by'],
+                    },
+                  })
+                }
+              >
+                {SELECTOR_BYS.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div class="field grow">
+              <label for={`${idp}-opt-target`}>Options selector</label>
+              <input
+                id={`${idp}-opt-target`}
+                type="text"
+                placeholder='[role="option"]'
+                value={step.optionTarget.value}
+                disabled={disabled}
+                aria-describedby={`${idp}-opt-target-hint`}
+                onInput={(e) =>
+                  onChange({
+                    ...step,
+                    optionTarget: {
+                      ...step.optionTarget,
+                      value: (e.target as HTMLInputElement).value,
+                    },
+                  })
+                }
+              />
+              <small id={`${idp}-opt-target-hint`} class="field-hint muted">
+                Locates the rendered suggestion items that appear after typing.
+              </small>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field grow">
+              <label for={`${idp}-opt-match`}>Option text contains</label>
+              <input
+                id={`${idp}-opt-match`}
+                type="text"
+                placeholder="Text of the option to click"
+                value={step.optionMatch}
+                disabled={disabled}
+                aria-describedby={`${idp}-opt-match-hint`}
+                onInput={(e) =>
+                  onChange({
+                    ...step,
+                    optionMatch: (e.target as HTMLInputElement).value,
+                  })
+                }
+              />
+              <small id={`${idp}-opt-match-hint`} class="field-hint muted">
+                Case-insensitive substring; the first matching option is clicked.
+              </small>
+            </div>
+
+            <div class="field">
+              <label for={`${idp}-timeout`}>Wait (ms)</label>
+              <input
+                id={`${idp}-timeout`}
+                type="number"
+                min={0}
+                step={100}
+                value={step.timeoutMs}
+                disabled={disabled}
+                onInput={(e) => {
+                  const n = Number((e.target as HTMLInputElement).value);
+                  onChange({
+                    ...step,
+                    timeoutMs: Number.isFinite(n) && n >= 0 ? n : 0,
+                  });
+                }}
+              />
+            </div>
+          </div>
+
+          <div class="field field-inline">
+            <input
+              id={`${idp}-simulate-typing`}
+              type="checkbox"
+              checked={step.simulateTyping ?? false}
+              disabled={disabled}
+              aria-describedby={`${idp}-simulate-typing-hint`}
+              onChange={(e) =>
+                onChange({
+                  ...step,
+                  simulateTyping: (e.target as HTMLInputElement).checked,
+                })
+              }
+            />
+            <label for={`${idp}-simulate-typing`}>Simulate typing</label>
+          </div>
+          <small id={`${idp}-simulate-typing-hint`} class="field-hint muted">
+            Types one character at a time (focus + key events). Enable if the
+            field ignores the filled value and only reacts when you type by hand.
+          </small>
         </>
       );
   }

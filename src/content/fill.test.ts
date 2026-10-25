@@ -96,7 +96,7 @@ describe('resolveTarget', () => {
 });
 
 describe('applySteps — text', () => {
-  it('sets the value and dispatches input then change (Req 3.1, 5b.1)', () => {
+  it('sets the value and dispatches input then change (Req 3.1, 5b.1)', async () => {
     mount('<input id="first" type="text" />');
     const el = document.getElementById('first') as HTMLInputElement;
     const events = recordEvents(el, ['input', 'change']);
@@ -104,7 +104,7 @@ describe('applySteps — text', () => {
     const steps: FieldStep[] = [
       { id: 's1', type: 'text', target: { by: 'id', value: 'first' }, value: 'Ada' },
     ];
-    const summary = applySteps(steps, 'continue');
+    const summary = await applySteps(steps, 'continue');
 
     expect(el.value).toBe('Ada');
     expect(events).toEqual(['input', 'change']);
@@ -112,12 +112,12 @@ describe('applySteps — text', () => {
     expect(summary.results[0]).toEqual({ index: 0, ok: true });
   });
 
-  it('fills a textarea via the native setter (Req 5b.1)', () => {
+  it('fills a textarea via the native setter (Req 5b.1)', async () => {
     mount('<textarea name="bio"></textarea>');
     const el = document.getElementsByName('bio')[0] as HTMLTextAreaElement;
     const events = recordEvents(el, ['input', 'change']);
 
-    const summary = applySteps(
+    const summary = await applySteps(
       [{ id: 's1', type: 'text', target: { by: 'name', value: 'bio' }, value: 'hi' }],
       'continue',
     );
@@ -127,7 +127,7 @@ describe('applySteps — text', () => {
     expect(summary.succeeded).toBe(1);
   });
 
-  it('writes via the native prototype setter, bypassing an instance override (Req 5b.1)', () => {
+  it('writes via the native prototype setter, bypassing an instance override (Req 5b.1)', async () => {
     mount('<input id="react" type="text" />');
     const el = document.getElementById('react') as HTMLInputElement;
 
@@ -152,7 +152,7 @@ describe('applySteps — text', () => {
     });
     const events = recordEvents(el, ['input']);
 
-    applySteps(
+    await applySteps(
       [{ id: 's1', type: 'text', target: { by: 'id', value: 'react' }, value: 'x' }],
       'continue',
     );
@@ -172,12 +172,12 @@ describe('applySteps — select', () => {
       <option value="ny">New York</option>
     </select>`;
 
-  it('selects by option value and dispatches change (Req 3.2)', () => {
+  it('selects by option value and dispatches change (Req 3.2)', async () => {
     mount(optionsHtml);
     const el = document.getElementById('state') as HTMLSelectElement;
     const events = recordEvents(el, ['change']);
 
-    const summary = applySteps(
+    const summary = await applySteps(
       [
         {
           id: 's1',
@@ -196,11 +196,11 @@ describe('applySteps — select', () => {
     expect(summary.succeeded).toBe(1);
   });
 
-  it('selects by visible text (Req 3.2)', () => {
+  it('selects by visible text (Req 3.2)', async () => {
     mount(optionsHtml);
     const el = document.getElementById('state') as HTMLSelectElement;
 
-    applySteps(
+    await applySteps(
       [
         {
           id: 's1',
@@ -217,9 +217,9 @@ describe('applySteps — select', () => {
     expect(el.selectedIndex).toBe(0);
   });
 
-  it('fails when no option matches', () => {
+  it('fails when no option matches', async () => {
     mount(optionsHtml);
-    const summary = applySteps(
+    const summary = await applySteps(
       [
         {
           id: 's1',
@@ -238,12 +238,12 @@ describe('applySteps — select', () => {
 });
 
 describe('applySteps — check', () => {
-  it('sets checked and dispatches click and change (Req 3.3, 5b.2)', () => {
+  it('sets checked and dispatches click and change (Req 3.3, 5b.2)', async () => {
     mount('<input id="agree" type="checkbox" />');
     const el = document.getElementById('agree') as HTMLInputElement;
     const events = recordEvents(el, ['click', 'change']);
 
-    const summary = applySteps(
+    const summary = await applySteps(
       [{ id: 's1', type: 'check', target: { by: 'id', value: 'agree' }, checked: true }],
       'continue',
     );
@@ -253,12 +253,12 @@ describe('applySteps — check', () => {
     expect(summary.succeeded).toBe(1);
   });
 
-  it('can uncheck a checked box', () => {
+  it('can uncheck a checked box', async () => {
     mount('<input id="agree" type="checkbox" checked />');
     const el = document.getElementById('agree') as HTMLInputElement;
     expect(el.checked).toBe(true);
 
-    applySteps(
+    await applySteps(
       [{ id: 's1', type: 'check', target: { by: 'id', value: 'agree' }, checked: false }],
       'continue',
     );
@@ -275,7 +275,7 @@ describe('applySteps — radio', () => {
       <input type="radio" name="contact" value="mail" />
     </form>`;
 
-  it('selects the group member matching the value and fires click + change (Req 3.3)', () => {
+  it('selects the group member matching the value and fires click + change (Req 3.3)', async () => {
     mount(groupHtml);
     const members = Array.from(
       document.querySelectorAll<HTMLInputElement>('input[name="contact"]'),
@@ -283,7 +283,7 @@ describe('applySteps — radio', () => {
     const phone = members[1] as HTMLInputElement;
     const events = recordEvents(phone, ['click', 'change']);
 
-    const summary = applySteps(
+    const summary = await applySteps(
       [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'phone' }],
       'continue',
     );
@@ -296,7 +296,7 @@ describe('applySteps — radio', () => {
     expect(summary.succeeded).toBe(1);
   });
 
-  it('moves the selection off a previously-checked sibling', () => {
+  it('moves the selection off a previously-checked sibling', async () => {
     mount(`
       <form>
         <input type="radio" name="contact" value="email" checked />
@@ -307,7 +307,7 @@ describe('applySteps — radio', () => {
     );
     expect(members[0]!.checked).toBe(true);
 
-    applySteps(
+    await applySteps(
       [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'phone' }],
       'continue',
     );
@@ -316,9 +316,9 @@ describe('applySteps — radio', () => {
     expect(members[1]!.checked).toBe(true);
   });
 
-  it('fails when no member matches the value', () => {
+  it('fails when no member matches the value', async () => {
     mount(groupHtml);
-    const summary = applySteps(
+    const summary = await applySteps(
       [{ id: 's1', type: 'radio', target: { by: 'name', value: 'contact' }, value: 'fax' }],
       'continue',
     );
@@ -334,12 +334,12 @@ describe('applySteps — radio', () => {
 });
 
 describe('applySteps — contenteditable', () => {
-  it('sets textContent and dispatches input (Req 3.4)', () => {
+  it('sets textContent and dispatches input (Req 3.4)', async () => {
     mount('<div id="editor" contenteditable="true"></div>');
     const el = document.getElementById('editor') as HTMLElement;
     const events = recordEvents(el, ['input']);
 
-    applySteps(
+    await applySteps(
       [
         {
           id: 's1',
@@ -357,11 +357,11 @@ describe('applySteps — contenteditable', () => {
     expect(events).toEqual(['input']);
   });
 
-  it('sets innerHTML when allowHtml is true (Req 3.4)', () => {
+  it('sets innerHTML when allowHtml is true (Req 3.4)', async () => {
     mount('<div id="editor" contenteditable="true"></div>');
     const el = document.getElementById('editor') as HTMLElement;
 
-    applySteps(
+    await applySteps(
       [
         {
           id: 's1',
@@ -386,11 +386,11 @@ describe('applySteps — element not found', () => {
     ];
   }
 
-  it('stop: halts at the failure and leaves later steps un-attempted (Req 9.2)', () => {
+  it('stop: halts at the failure and leaves later steps un-attempted (Req 9.2)', async () => {
     mount('<input id="present" type="text" />');
     const present = document.getElementById('present') as HTMLInputElement;
 
-    const summary = applySteps(twoStepMix(), 'stop');
+    const summary = await applySteps(twoStepMix(), 'stop');
 
     expect(summary.total).toBe(2);
     expect(summary.succeeded).toBe(0);
@@ -405,11 +405,11 @@ describe('applySteps — element not found', () => {
     expect(present.value).toBe('');
   });
 
-  it('continue: attempts every step and reports the failure (Req 9.3)', () => {
+  it('continue: attempts every step and reports the failure (Req 9.3)', async () => {
     mount('<input id="present" type="text" />');
     const present = document.getElementById('present') as HTMLInputElement;
 
-    const summary = applySteps(twoStepMix(), 'continue');
+    const summary = await applySteps(twoStepMix(), 'continue');
 
     expect(summary.total).toBe(2);
     expect(summary.succeeded).toBe(1);
@@ -423,5 +423,199 @@ describe('applySteps — element not found', () => {
     expect(summary.results[1]).toEqual({ index: 1, ok: true });
     // The reachable step still applied.
     expect(present.value).toBe('y');
+  });
+});
+
+describe('applySteps — autocomplete (Req 3.6)', () => {
+  /** A combobox input plus an (initially empty) listbox container. */
+  const comboHtml = `
+    <input id="place" type="text" role="combobox" />
+    <ul id="listbox" role="listbox"></ul>`;
+
+  /** Append an option with `text` to the listbox and return it. */
+  function addOption(text: string): HTMLLIElement {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'option');
+    li.textContent = text;
+    (document.getElementById('listbox') as HTMLElement).appendChild(li);
+    return li;
+  }
+
+  function autocompleteStep(overrides: Record<string, unknown> = {}): FieldStep {
+    return {
+      id: 's1',
+      type: 'autocomplete',
+      target: { by: 'id', value: 'place' },
+      value: 'Penn',
+      optionTarget: { by: 'css', value: '[role="option"]' },
+      optionMatch: 'Pennsylvania',
+      timeoutMs: 1000,
+      ...overrides,
+    } as FieldStep;
+  }
+
+  it('types the query and fires input/change on the field', async () => {
+    mount(comboHtml);
+    const field = document.getElementById('place') as HTMLInputElement;
+    const events = recordEvents(field, ['input', 'change']);
+    addOption('1600 Pennsylvania Ave'); // already present
+
+    const summary = await applySteps([autocompleteStep()], 'continue');
+
+    expect(field.value).toBe('Penn');
+    expect(events).toEqual(['input', 'change']);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('clicks the first option whose text contains the match (already rendered)', async () => {
+    mount(comboHtml);
+    addOption('1600 Pennsylvania Ave NW'); // match
+    const match = document.querySelectorAll('[role="option"]')[0] as HTMLElement;
+    const events = recordEvents(match, ['pointerdown', 'mousedown', 'click']);
+
+    const summary = await applySteps([autocompleteStep()], 'continue');
+
+    expect(events).toEqual(['pointerdown', 'mousedown', 'click']);
+    expect(summary.succeeded).toBe(1);
+    expect(summary.results[0]).toEqual({ index: 0, ok: true });
+  });
+
+  it('matches case-insensitively as a substring', async () => {
+    mount(comboHtml);
+    const opt = addOption('123 PENNSYLVANIA AVENUE');
+    const events = recordEvents(opt, ['click']);
+
+    const summary = await applySteps(
+      [autocompleteStep({ optionMatch: 'pennsylvania' })],
+      'continue',
+    );
+
+    expect(events).toEqual(['click']);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('picks the first match when several options match', async () => {
+    mount(comboHtml);
+    const first = addOption('Pennsylvania Ave');
+    const second = addOption('Pennsylvania Plaza');
+    const firstEvents = recordEvents(first, ['click']);
+    const secondEvents = recordEvents(second, ['click']);
+
+    await applySteps([autocompleteStep()], 'continue');
+
+    expect(firstEvents).toEqual(['click']);
+    expect(secondEvents).toEqual([]);
+  });
+
+  it('waits for an option rendered asynchronously after typing', async () => {
+    mount(comboHtml);
+    // The option appears 120ms after the step starts typing.
+    setTimeout(() => addOption('1600 Pennsylvania Ave'), 120);
+
+    const summary = await applySteps(
+      [autocompleteStep({ timeoutMs: 1000 })],
+      'continue',
+    );
+
+    expect(summary.succeeded).toBe(1);
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
+  });
+
+  it('fails with a timeout reason when no option matches in time', async () => {
+    mount(comboHtml);
+    addOption('Somewhere Else'); // present but non-matching
+
+    const summary = await applySteps(
+      [autocompleteStep({ timeoutMs: 150 })],
+      'continue',
+    );
+
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0]?.ok).toBe(false);
+    expect(summary.results[0]?.reason).toContain('no autocomplete option matching');
+    expect(summary.results[0]?.reason).toContain('150ms');
+  });
+
+  it('fails when the input field itself is not found', async () => {
+    mount('<div></div>');
+    const summary = await applySteps(
+      [autocompleteStep({ target: { by: 'id', value: 'nope' } })],
+      'continue',
+    );
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0]?.reason).toBe(NOT_FOUND_REASON);
+  });
+
+  describe('simulateTyping', () => {
+    it('fires focus and focusin before typing so focus-gated widgets open', async () => {
+      mount(comboHtml);
+      const field = document.getElementById('place') as HTMLInputElement;
+      const order: string[] = [];
+      field.addEventListener('focus', () => order.push('focus'));
+      field.addEventListener('focusin', () => order.push('focusin'));
+      field.addEventListener('input', () => order.push('input'));
+      addOption('Pennsylvania Ave');
+
+      await applySteps(
+        [autocompleteStep({ value: 'a', simulateTyping: true })],
+        'continue',
+      );
+
+      // Focus is established before the first input event.
+      expect(order.indexOf('focus')).toBeGreaterThanOrEqual(0);
+      expect(order.indexOf('focusin')).toBeGreaterThanOrEqual(0);
+      expect(order.indexOf('focus')).toBeLessThan(order.indexOf('input'));
+      expect(order.indexOf('focusin')).toBeLessThan(order.indexOf('input'));
+    });
+
+    it('focuses the field and dispatches a keystroke sequence per character', async () => {
+      mount(comboHtml);
+      const field = document.getElementById('place') as HTMLInputElement;
+
+      const keydowns: string[] = [];
+      const keyups: string[] = [];
+      const inputs: string[] = [];
+      field.addEventListener('keydown', (e) =>
+        keydowns.push((e as KeyboardEvent).key),
+      );
+      field.addEventListener('keyup', (e) =>
+        keyups.push((e as KeyboardEvent).key),
+      );
+      // Record the field's value at each input event (it should grow).
+      field.addEventListener('input', () => inputs.push(field.value));
+
+      addOption('1600 Pennsylvania Ave'); // already present so it resolves fast
+
+      const summary = await applySteps(
+        [autocompleteStep({ value: 'abn', simulateTyping: true })],
+        'continue',
+      );
+
+      expect(document.activeElement).toBe(field);
+      expect(keydowns).toEqual(['a', 'b', 'n']);
+      expect(keyups).toEqual(['a', 'b', 'n']);
+      // The value grows one character per input event.
+      expect(inputs).toEqual(['a', 'ab', 'abn']);
+      expect(field.value).toBe('abn');
+      expect(summary.succeeded).toBe(1);
+    });
+
+    it('dispatches input as an InputEvent with inputType insertText', async () => {
+      mount(comboHtml);
+      const field = document.getElementById('place') as HTMLInputElement;
+      const types: Array<string | undefined> = [];
+      field.addEventListener('input', (e) => {
+        types.push((e as InputEvent).inputType);
+      });
+      addOption('Pennsylvania Ave');
+
+      await applySteps(
+        [autocompleteStep({ value: 'ab', simulateTyping: true })],
+        'continue',
+      );
+
+      // jsdom supports InputEvent, so each input carries insertText.
+      expect(types).toEqual(['insertText', 'insertText']);
+    });
   });
 });

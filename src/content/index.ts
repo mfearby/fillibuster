@@ -58,8 +58,9 @@ export async function handleRequest(
 
   switch (message.type) {
     case MessageType.ApplySteps:
-      // Fill executor is synchronous; wrap its summary in the async result.
-      return applySteps(message.steps, message.errorStrategy);
+      // The fill executor is async (an `autocomplete` step waits for the page's
+      // suggestion list), so await its summary before replying.
+      return await applySteps(message.steps, message.errorStrategy);
     case MessageType.CapturePage:
       return capturePage();
     default:

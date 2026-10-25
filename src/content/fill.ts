@@ -9,6 +9,12 @@
  * summary so the popup can report which steps succeeded and which failed
  * (Req 5.4, 9.1).
  *
+ * The executor is ASYNC (`applySteps` returns a `Promise<FillSummary>`). Most
+ * step types apply instantly, but the `autocomplete` step (Req 3.6) must wait
+ * for the page to asynchronously render a suggestion list before it can click a
+ * match, so applying a step is modelled as a promise throughout. Steps are
+ * still applied strictly in order, each awaited before the next begins.
+ *
  * The key subtlety (Req 5b.1): React installs a value tracker on inputs and
  * ignores plain `element.value = x` assignments. Setting the value through the
  * prototype's native setter (`Object.getOwnPropertyDescriptor(
@@ -23,6 +29,7 @@
  */
 
 import type {
+  AutocompleteStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -127,17 +134,17 @@ function splitCandidates(value: string): string[] {
  * `root` is injectable so the executor can be exercised against a jsdom fixture
  * in tests; in production it operates on the page `document`.
  */
-export function applySteps(
+export async function applySteps(
   steps: FieldStep[],
   errorStrategy: ErrorStrategy,
   root: Document | Element = document,
-): FillSummary {
+): Promise<FillSummary> {
   const results: StepResult[] = [];
 
   for (let index = 0; index < steps.length; index++) {
     const step = steps[index];
     if (!step) continue;
-    const result = applyStep(step, index, root);
+    const result = await applyStep(step, index, root);
     results.push(result);
 
     if (!result.ok && errorStrategy === 'stop') {
@@ -156,11 +163,11 @@ export function applySteps(
 }
 
 /** Apply a single step, catching any DOM error into a failure result. */
-function applyStep(
+async function applyStep(
   step: FieldStep,
   index: number,
   root: Document | Element,
-): StepResult {
+): Promise<StepResult> {
   const el = resolveTarget(step.target, root);
   if (!el) {
     return { index, ok: false, reason: NOT_FOUND_REASON };
@@ -181,6 +188,8 @@ function applyStep(
       case 'contenteditable':
         applyContentEditable(el, step);
         break;
+      case 'autocomplete':
+        return await applyAutocomplete(el, step, index, root);
       default:
         return {
           index,
@@ -315,6 +324,231 @@ function applyContentEditable(el: Element, step: ContentEditableStep): void {
     el.textContent = step.html;
   }
   dispatchInput(el);
+}
+
+/** Default polling interval (ms) while waiting for autocomplete options. */
+const AUTOCOMPLETE_POLL_MS = 50;
+
+/**
+ * autocomplete (Req 3.6): type `value` into the resolved input to trigger the
+ * page's async suggestion fetch, poll up to `step.timeoutMs` for an option
+ * matching `optionMatch`, then click it.
+ *
+ * Typing has two modes. By default it reuses the native-setter + `input`/
+ * `change` path (fast, works for most comboboxes). When `step.simulateTyping`
+ * is set it instead focuses the input and dispatches a real per-character
+ * keystroke sequence (`keydown`/`input` as an `InputEvent`/`keyup`) — needed by
+ * widgets like `react-autosuggest` that only fetch when they classify the
+ * change as genuine typing AND while the input is focused. We then poll
+ * `optionTarget` on a short interval: each tick we
+ * re-query the DOM (options are added asynchronously) and pick the FIRST option
+ * whose visible text contains `optionMatch` (case-insensitive). On a match we
+ * dispatch `pointerdown`/`mousedown`/`click` — some widgets commit the
+ * selection on `mousedown` rather than `click` — and report success. If the
+ * timeout elapses with no match we fail the step with a clear reason, keeping
+ * the error-strategy semantics identical to every other step (Req 9.1-9.3).
+ */
+async function applyAutocomplete(
+  el: Element,
+  step: AutocompleteStep,
+  index: number,
+  root: Document | Element,
+): Promise<StepResult> {
+  // Type the query to trigger the page's async suggestion list.
+  if (step.simulateTyping) {
+    await typeSequence(el, step.value);
+  } else {
+    setNativeValue(el, step.value);
+    dispatchInput(el);
+    dispatchChange(el);
+  }
+
+  const deadline = Date.now() + Math.max(0, step.timeoutMs);
+  // Poll until an option matches or the deadline passes. The first poll runs
+  // immediately so already-rendered options are picked up without delay.
+  // eslint-disable-next-line no-constant-condition
+  for (;;) {
+    const match = findOption(step.optionTarget, step.optionMatch, root);
+    if (match) {
+      dispatchEvent(match, 'pointerdown');
+      dispatchEvent(match, 'mousedown');
+      dispatchEvent(match, 'click');
+      return { index, ok: true };
+    }
+    if (Date.now() >= deadline) {
+      return {
+        index,
+        ok: false,
+        reason: `no autocomplete option matching "${step.optionMatch}" within ${step.timeoutMs}ms`,
+      };
+    }
+    await delay(AUTOCOMPLETE_POLL_MS);
+  }
+}
+
+/** Small delay (ms) between simulated keystrokes. */
+const KEYSTROKE_DELAY_MS = 10;
+
+/**
+ * Simulate a human typing `value` into `el` one character at a time, for
+ * widgets that ignore a single programmatic value assignment (e.g.
+ * `react-autosuggest`, which only fetches on a change it classifies as
+ * `method: 'type'` and only while the input is focused).
+ *
+ * Two things must be true for a widget like `react-autosuggest` to open its
+ * list: (1) it must believe the input is focused — it tracks this via its own
+ * `focus` handler and only renders suggestions while focused — and (2) a change
+ * must flow through React's synthetic `onChange` carrying the typed value.
+ *
+ * So we: dispatch `focus`/`focusin` (and call `.focus()`) to flip the widget's
+ * focused state; then for each character dispatch `keydown`, grow the value via
+ * the native prototype setter (so React's value tracker sees the mutation),
+ * dispatch a real `InputEvent` (`inputType: 'insertText'`, `data: char`) so the
+ * synthetic `onChange` fires, and dispatch `keyup`. A small delay between
+ * characters lets the widget's (often debounced) fetch and React state settle.
+ * A final `change` fires once the value is complete.
+ *
+ * The explicit focus events matter most here: a programmatic `.focus()` does
+ * not always drive a framework's synthetic `onFocus`, which is why a filled
+ * field showed no focus ring and no list until clicked by hand.
+ */
+async function typeSequence(el: Element, value: string): Promise<void> {
+  const input = el as HTMLInputElement | HTMLTextAreaElement;
+  focusInput(input);
+
+  let soFar = '';
+  for (const char of Array.from(value)) {
+    dispatchKey(input, 'keydown', char);
+    soFar += char;
+    setNativeValue(input, soFar);
+    dispatchInputEvent(input, char);
+    dispatchKey(input, 'keyup', char);
+    await delay(KEYSTROKE_DELAY_MS);
+  }
+
+  dispatchChange(input);
+}
+
+/**
+ * Focus an input the way a real pointer interaction does: dispatch
+ * `pointerdown`/`mousedown`/`focus`/`focusin` and call the native `.focus()`.
+ * Frameworks (e.g. `react-autosuggest`) flip their internal "is focused" state
+ * from the `focus` event, which a bare `.focus()` call may not deliver to their
+ * synthetic handler; the explicit events make the focus stick.
+ */
+function focusInput(input: HTMLElement): void {
+  dispatchEvent(input, 'pointerdown');
+  dispatchEvent(input, 'mousedown');
+  if (typeof input.focus === 'function') {
+    input.focus();
+  }
+  input.dispatchEvent(new FocusEvent('focus', { bubbles: false }));
+  input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+}
+
+/**
+ * Dispatch a bubbling `KeyboardEvent`. `key` is the character; for printable
+ * characters `key` and the (deprecated but still read by some libs) `keyCode`
+ * are derived from the character so handlers that gate on them behave.
+ */
+function dispatchKey(el: Element, type: string, char: string): void {
+  const code = char.charCodeAt(0);
+  const event = new KeyboardEvent(type, {
+    key: char,
+    bubbles: true,
+    cancelable: true,
+  });
+  // Some libraries still read the legacy keyCode/which; define them since the
+  // KeyboardEvent constructor ignores those options.
+  try {
+    Object.defineProperty(event, 'keyCode', { get: () => code });
+    Object.defineProperty(event, 'which', { get: () => code });
+  } catch {
+    // Non-fatal: the event still carries `key`.
+  }
+  el.dispatchEvent(event);
+}
+
+/**
+ * Dispatch an `input` event that looks like genuine text insertion. Uses the
+ * real `InputEvent` (with `inputType: 'insertText'` and the inserted `data`)
+ * when the environment supports it, falling back to a plain bubbling `Event`
+ * (e.g. older jsdom) so tests and odd runtimes still see an `input`.
+ */
+function dispatchInputEvent(el: Element, char: string): void {
+  const InputEventCtor = (
+    globalThis as { InputEvent?: typeof InputEvent }
+  ).InputEvent;
+  if (typeof InputEventCtor === 'function') {
+    el.dispatchEvent(
+      new InputEventCtor('input', {
+        bubbles: true,
+        inputType: 'insertText',
+        data: char,
+      }),
+    );
+  } else {
+    dispatchInput(el);
+  }
+}
+
+/**
+ * Find the first rendered option (in document order) whose trimmed visible text
+ * contains `needle`, case-insensitively. Returns `null` when none match (or the
+ * list is not yet rendered).
+ */
+function findOption(
+  optionTarget: Selector,
+  needle: string,
+  root: Document | Element,
+): Element | null {
+  const options = resolveAll(optionTarget, root);
+  const want = needle.trim().toLowerCase();
+  for (const opt of options) {
+    const text = (opt.textContent ?? '').trim().toLowerCase();
+    if (text.includes(want)) return opt;
+  }
+  return null;
+}
+
+/**
+ * Resolve a {@link Selector} to ALL matching elements (unlike
+ * {@link resolveTarget}, which returns the first). For `id`/`name` the comma
+ * list still means "fallback candidates in order", so we return the matches of
+ * the first candidate that matches anything; `css` returns every match in
+ * document order.
+ */
+function resolveAll(selector: Selector, root: Document | Element): Element[] {
+  switch (selector.by) {
+    case 'css':
+      return Array.from(root.querySelectorAll(selector.value));
+    case 'id': {
+      for (const value of splitCandidates(selector.value)) {
+        const el =
+          typeof (root as Document).getElementById === 'function'
+            ? (root as Document).getElementById(value)
+            : (root as Element).querySelector(`#${cssEscape(value)}`);
+        if (el) return [el];
+      }
+      return [];
+    }
+    case 'name': {
+      for (const value of splitCandidates(selector.value)) {
+        const found = Array.from(
+          root.querySelectorAll(`[name="${cssAttrEscape(value)}"]`),
+        );
+        if (found.length > 0) return found;
+      }
+      return [];
+    }
+    default:
+      return [];
+  }
+}
+
+/** Resolve after `ms` milliseconds. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

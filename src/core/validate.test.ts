@@ -38,6 +38,16 @@ function validConfig(): FillConfig {
         target: { by: 'name', value: 'contact' },
         value: 'email',
       },
+      {
+        id: 's6',
+        type: 'autocomplete',
+        label: 'address',
+        target: { by: 'id', value: 'address' },
+        value: '1600 Pennsylvania',
+        optionTarget: { by: 'css', value: '[role="option"]' },
+        optionMatch: 'Pennsylvania Ave',
+        timeoutMs: 2000,
+      },
     ],
     errorStrategy: 'continue',
     encrypted: false,
@@ -147,7 +157,7 @@ describe('validateConfig', () => {
   describe('invalid steps', () => {
     it('rejects an unknown step type', () => {
       const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
-      cfg.steps[0]!['type'] = 'autocomplete';
+      cfg.steps[0]!['type'] = 'slider';
       const res = validateConfig(cfg);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.error).toMatch(/steps\[0\]\.type must be one of/);
@@ -216,6 +226,69 @@ describe('validateConfig', () => {
       const res = validateConfig(cfg);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.error).toMatch(/steps\[3\]\.allowHtml/);
+    });
+
+    it('accepts a well-formed autocomplete step', () => {
+      const res = validateConfig(asUnknown(validConfig()));
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        const auto = res.value.steps[5];
+        expect(auto).toMatchObject({
+          type: 'autocomplete',
+          value: '1600 Pennsylvania',
+          optionMatch: 'Pennsylvania Ave',
+          timeoutMs: 2000,
+          optionTarget: { by: 'css', value: '[role="option"]' },
+        });
+      }
+    });
+
+    it('rejects an autocomplete step with a non-string value', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[5]!['value'] = 1;
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.value must be a string/);
+    });
+
+    it('rejects an autocomplete step with an invalid optionTarget', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      (cfg.steps[5]!['optionTarget'] as { by: string }).by = 'xpath';
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.optionTarget\.by/);
+    });
+
+    it('rejects an autocomplete step with an empty optionMatch', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[5]!['optionMatch'] = '';
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.optionMatch/);
+    });
+
+    it('rejects an autocomplete step with a negative timeoutMs', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[5]!['timeoutMs'] = -1;
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.timeoutMs/);
+    });
+
+    it('accepts an autocomplete step with simulateTyping set', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[5]!['simulateTyping'] = true;
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(true);
+      if (res.ok) expect(res.value.steps[5]).toMatchObject({ simulateTyping: true });
+    });
+
+    it('rejects an autocomplete step with a non-boolean simulateTyping', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[5]!['simulateTyping'] = 'yes';
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.simulateTyping/);
     });
 
     it('rejects a non-string label', () => {

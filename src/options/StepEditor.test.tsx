@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { CheckStep, RadioStep, SelectStep } from '../core/schema';
+import type {
+  AutocompleteStep,
+  CheckStep,
+  RadioStep,
+  SelectStep,
+} from '../core/schema';
 import { changeStepType } from './StepEditor';
 
 const base = {
@@ -50,5 +55,44 @@ describe('changeStepType — radio', () => {
   it('is a no-op when the type is unchanged', () => {
     const radio: RadioStep = { ...base, type: 'radio', value: 'email' };
     expect(changeStepType(radio, 'radio')).toBe(radio);
+  });
+});
+
+describe('changeStepType — autocomplete', () => {
+  it('produces a valid autocomplete step with sensible defaults', () => {
+    const check: CheckStep = { ...base, type: 'check', checked: true };
+    const auto = changeStepType(check, 'autocomplete') as AutocompleteStep;
+    expect(auto.type).toBe('autocomplete');
+    expect(auto.value).toBe('');
+    expect(auto.optionMatch).toBe('');
+    expect(auto.optionTarget).toEqual({ by: 'css', value: '[role="option"]' });
+    expect(auto.timeoutMs).toBeGreaterThan(0);
+  });
+
+  it('preserves id, target, and label when switching to autocomplete', () => {
+    const select: SelectStep = {
+      ...base,
+      type: 'select',
+      value: 'x',
+      matchBy: 'value',
+    };
+    const auto = changeStepType(select, 'autocomplete');
+    expect(auto.id).toBe('step-1');
+    expect(auto.label).toBe('Contact method');
+    expect(auto.target).toEqual({ by: 'name', value: 'contact' });
+  });
+
+  it('converts autocomplete to another type, resetting type-specific fields', () => {
+    const auto: AutocompleteStep = {
+      ...base,
+      type: 'autocomplete',
+      value: 'Penn',
+      optionTarget: { by: 'css', value: '[role="option"]' },
+      optionMatch: 'Pennsylvania',
+      timeoutMs: 2000,
+    };
+    const text = changeStepType(auto, 'text');
+    expect(text.type).toBe('text');
+    expect(text.id).toBe('step-1');
   });
 });
