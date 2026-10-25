@@ -619,3 +619,162 @@ describe('applySteps — autocomplete (Req 3.6)', () => {
     });
   });
 });
+
+describe('applySteps — button (Req 3.7)', () => {
+  it('clicks a button resolved by selector and fires a pointer+click sequence', async () => {
+    mount('<button id="go">Go</button>');
+    const btn = document.getElementById('go') as HTMLButtonElement;
+    const events = recordEvents(btn, ['pointerdown', 'mousedown', 'mouseup', 'click']);
+
+    const summary = await applySteps(
+      [{ id: 's1', type: 'button', target: { by: 'id', value: 'go' } }],
+      'continue',
+    );
+
+    expect(events).toEqual(['pointerdown', 'mousedown', 'mouseup', 'click']);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('resolves a React useId-style id like ":r16:" by id', async () => {
+    mount('<button id=":r16:">Accept</button>');
+    const btn = document.getElementById(':r16:') as HTMLButtonElement;
+    let clicked = false;
+    btn.addEventListener('click', () => (clicked = true));
+
+    const summary = await applySteps(
+      [{ id: 's1', type: 'button', target: { by: 'id', value: ':r16:' } }],
+      'continue',
+    );
+
+    expect(clicked).toBe(true);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('clicks a button matched by its visible text (case-insensitive, trimmed)', async () => {
+    mount(`
+      <button id="a">Cancel</button>
+      <button id="b">  Accept  </button>`);
+    const accept = document.getElementById('b') as HTMLButtonElement;
+    let clicked = false;
+    accept.addEventListener('click', () => (clicked = true));
+
+    const summary = await applySteps(
+      [
+        {
+          id: 's1',
+          type: 'button',
+          target: { by: 'css', value: 'body' },
+          matchBy: 'text',
+          text: 'accept',
+        },
+      ],
+      'continue',
+    );
+
+    expect(clicked).toBe(true);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('matches an <input type=submit> by its value', async () => {
+    // No wrapping <form>: jsdom doesn't implement form.requestSubmit, which a
+    // real submit click would trigger; we only care that the click lands.
+    mount('<input type="submit" value="Submit form" />');
+    const input = document.querySelector('input[type="submit"]') as HTMLInputElement;
+    let clicked = false;
+    input.addEventListener('click', () => (clicked = true));
+
+    const summary = await applySteps(
+      [
+        {
+          id: 's1',
+          type: 'button',
+          target: { by: 'css', value: 'body' },
+          matchBy: 'text',
+          text: 'Submit form',
+        },
+      ],
+      'continue',
+    );
+
+    expect(clicked).toBe(true);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('clicks the first match when several buttons share the text', async () => {
+    mount(`
+      <button id="first">Next</button>
+      <button id="second">Next</button>`);
+    const first = document.getElementById('first') as HTMLButtonElement;
+    const second = document.getElementById('second') as HTMLButtonElement;
+    const firstClicks = recordEvents(first, ['click']);
+    const secondClicks = recordEvents(second, ['click']);
+
+    await applySteps(
+      [
+        {
+          id: 's1',
+          type: 'button',
+          target: { by: 'css', value: 'body' },
+          matchBy: 'text',
+          text: 'Next',
+        },
+      ],
+      'continue',
+    );
+
+    expect(firstClicks).toEqual(['click']);
+    expect(secondClicks).toEqual([]);
+  });
+
+  it('matches a custom [role=button] by text', async () => {
+    mount('<div role="button" id="rb">I Agree</div>');
+    const rb = document.getElementById('rb') as HTMLElement;
+    const events = recordEvents(rb, ['mousedown', 'click']);
+
+    const summary = await applySteps(
+      [
+        {
+          id: 's1',
+          type: 'button',
+          target: { by: 'css', value: 'body' },
+          matchBy: 'text',
+          text: 'I Agree',
+        },
+      ],
+      'continue',
+    );
+
+    expect(events).toEqual(['mousedown', 'click']);
+    expect(summary.succeeded).toBe(1);
+  });
+
+  it('fails when no button matches the text', async () => {
+    mount('<button>Accept</button>');
+    const summary = await applySteps(
+      [
+        {
+          id: 's1',
+          type: 'button',
+          target: { by: 'css', value: 'body' },
+          matchBy: 'text',
+          text: 'Decline',
+        },
+      ],
+      'continue',
+    );
+
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0]?.ok).toBe(false);
+    expect(summary.results[0]?.reason).toContain('no button matching text "Decline"');
+  });
+
+  it('fails when the selector-resolved button is not found', async () => {
+    mount('<div></div>');
+    const summary = await applySteps(
+      [{ id: 's1', type: 'button', target: { by: 'id', value: 'missing' } }],
+      'continue',
+    );
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0]?.reason).toBe(NOT_FOUND_REASON);
+  });
+});

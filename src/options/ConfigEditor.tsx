@@ -70,6 +70,8 @@ function newStep(type: FieldStep['type']): FieldStep {
         optionMatch: '',
         timeoutMs: 2000,
       };
+    case 'button':
+      return { ...base, type: 'button', matchBy: 'selector', text: '' };
   }
 }
 

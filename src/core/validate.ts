@@ -14,6 +14,7 @@
 
 import type {
   AutocompleteStep,
+  ButtonStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -55,6 +56,7 @@ const STEP_TYPES = [
   'radio',
   'contenteditable',
   'autocomplete',
+  'button',
 ] as const;
 const SELECTOR_BY = ['id', 'name', 'css'] as const;
 const RULE_KINDS = ['exact', 'prefix', 'glob'] as const;
@@ -160,6 +162,22 @@ function validateStep(v: unknown, path: string): Result<FieldStep> {
         timeoutMs: v['timeoutMs'],
       };
       if (typeof v['simulateTyping'] === 'boolean') step.simulateTyping = v['simulateTyping'];
+      return ok(step);
+    }
+    case 'button': {
+      const matchBy = v['matchBy'];
+      if (matchBy !== undefined && matchBy !== 'selector' && matchBy !== 'text') {
+        return err(`${path}.matchBy must be "selector" or "text" when present`);
+      }
+      if (v['text'] !== undefined && typeof v['text'] !== 'string') {
+        return err(`${path}.text must be a string when present`);
+      }
+      if (matchBy === 'text' && (typeof v['text'] !== 'string' || v['text'].length === 0)) {
+        return err(`${path}.text must be a non-empty string when matchBy is "text"`);
+      }
+      const step: ButtonStep = { ...base, type: 'button' };
+      if (matchBy === 'selector' || matchBy === 'text') step.matchBy = matchBy;
+      if (typeof v['text'] === 'string') step.text = v['text'];
       return ok(step);
     }
     // Unreachable: `type` is narrowed to STEP_TYPES above.

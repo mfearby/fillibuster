@@ -48,6 +48,14 @@ function validConfig(): FillConfig {
         optionMatch: 'Pennsylvania Ave',
         timeoutMs: 2000,
       },
+      {
+        id: 's7',
+        type: 'button',
+        label: 'accept',
+        target: { by: 'css', value: 'body' },
+        matchBy: 'text',
+        text: 'Accept',
+      },
     ],
     errorStrategy: 'continue',
     encrypted: false,
@@ -289,6 +297,43 @@ describe('validateConfig', () => {
       const res = validateConfig(cfg);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.error).toMatch(/steps\[5\]\.simulateTyping/);
+    });
+
+    it('accepts a well-formed button step matched by text', () => {
+      const res = validateConfig(asUnknown(validConfig()));
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.value.steps[6]).toMatchObject({
+          type: 'button',
+          matchBy: 'text',
+          text: 'Accept',
+        });
+      }
+    });
+
+    it('accepts a button step with no matchBy/text (selector default)', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      delete cfg.steps[6]!['matchBy'];
+      delete cfg.steps[6]!['text'];
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(true);
+      if (res.ok) expect(res.value.steps[6]).toMatchObject({ type: 'button' });
+    });
+
+    it('rejects a button step with an invalid matchBy', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[6]!['matchBy'] = 'label';
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[6\]\.matchBy/);
+    });
+
+    it('rejects a button step with matchBy "text" but empty text', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[6]!['text'] = '';
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[6\]\.text must be a non-empty string/);
     });
 
     it('rejects a non-string label', () => {

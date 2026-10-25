@@ -30,6 +30,7 @@
 
 import type {
   AutocompleteStep,
+  ButtonStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -168,6 +169,12 @@ async function applyStep(
   index: number,
   root: Document | Element,
 ): Promise<StepResult> {
+  // A button step matched by visible text does not resolve via `target`; it
+  // scans for a button itself, so handle it before the generic target resolve.
+  if (step.type === 'button' && step.matchBy === 'text') {
+    return applyButtonByText(step, index, root);
+  }
+
   const el = resolveTarget(step.target, root);
   if (!el) {
     return { index, ok: false, reason: NOT_FOUND_REASON };
@@ -190,6 +197,9 @@ async function applyStep(
         break;
       case 'autocomplete':
         return await applyAutocomplete(el, step, index, root);
+      case 'button':
+        applyButton(el);
+        break;
       default:
         return {
           index,
@@ -324,6 +334,77 @@ function applyContentEditable(el: Element, step: ContentEditableStep): void {
     el.textContent = step.html;
   }
   dispatchInput(el);
+}
+
+/**
+ * button (Req 3.7): activate a resolved element with a full pointer+click
+ * sequence (`pointerdown`/`mousedown`/`mouseup`/`click`). The extra pointer
+ * events make this robust for custom `[role="button"]` widgets that commit on
+ * `mousedown`/`pointerdown` rather than the synthesized `click`; a plain
+ * `<button>`/`<input type=submit>` only needs the `click`.
+ */
+function applyButton(el: Element): void {
+  dispatchEvent(el, 'pointerdown');
+  dispatchEvent(el, 'mousedown');
+  dispatchEvent(el, 'mouseup');
+  if (typeof (el as HTMLElement).click === 'function') {
+    (el as HTMLElement).click();
+  } else {
+    dispatchEvent(el, 'click');
+  }
+}
+
+/** CSS matching the button-like elements we scan when matching by text. */
+const BUTTON_SELECTOR =
+  'button, [role="button"], input[type="submit"], input[type="button"], input[type="reset"]';
+
+/**
+ * button matched by visible text (Req 3.7): find the first button-like element
+ * whose trimmed visible text — or, for `<input>` buttons, its `value` — equals
+ * `step.text` case-insensitively, then click it. Fails clearly when the text is
+ * missing or no button matches.
+ */
+function applyButtonByText(
+  step: ButtonStep,
+  index: number,
+  root: Document | Element,
+): StepResult {
+  const want = (step.text ?? '').trim().toLowerCase();
+  if (want.length === 0) {
+    return {
+      index,
+      ok: false,
+      reason: 'button match-by-text requires a non-empty text',
+    };
+  }
+
+  const candidates = Array.from(root.querySelectorAll(BUTTON_SELECTOR));
+  const match = candidates.find((el) => buttonText(el).trim().toLowerCase() === want);
+  if (!match) {
+    return {
+      index,
+      ok: false,
+      reason: `no button matching text "${step.text}"`,
+    };
+  }
+
+  try {
+    applyButton(match);
+    return { index, ok: true };
+  } catch (err) {
+    return { index, ok: false, reason: describeError(err) };
+  }
+}
+
+/**
+ * The readable label of a button-like element: an `<input>` button exposes its
+ * label via `value`; everything else via `textContent`.
+ */
+function buttonText(el: Element): string {
+  if (el instanceof HTMLInputElement) {
+    return el.value ?? '';
+  }
+  return el.textContent ?? '';
 }
 
 /** Default polling interval (ms) while waiting for autocomplete options. */

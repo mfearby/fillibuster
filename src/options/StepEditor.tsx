@@ -19,6 +19,7 @@
 
 import type {
   AutocompleteStep,
+  ButtonStep,
   CheckStep,
   ContentEditableStep,
   FieldStep,
@@ -49,7 +50,24 @@ const STEP_TYPES: FieldStep['type'][] = [
   'radio',
   'contenteditable',
   'autocomplete',
+  'button',
 ];
+
+/**
+ * Friendly labels for the Type dropdown. The stored step `type` values are
+ * unchanged (so saved configs keep working); this only affects what the user
+ * reads. Where a bare type name is ambiguous — e.g. `button` is an action, not
+ * a field — the label spells out the intent (Req 6.4).
+ */
+const STEP_TYPE_LABELS: Record<FieldStep['type'], string> = {
+  text: 'text',
+  select: 'select',
+  check: 'checkbox',
+  radio: 'radio',
+  contenteditable: 'contenteditable',
+  autocomplete: 'autocomplete',
+  button: 'button (click)',
+};
 
 /** Default wait (ms) for a newly-created autocomplete step. */
 const DEFAULT_AUTOCOMPLETE_TIMEOUT_MS = 2000;
@@ -125,6 +143,13 @@ export function changeStepType(
         optionMatch: '',
         timeoutMs: DEFAULT_AUTOCOMPLETE_TIMEOUT_MS,
       } satisfies AutocompleteStep;
+    case 'button':
+      return {
+        ...base,
+        type: 'button',
+        matchBy: 'selector',
+        text: '',
+      } satisfies ButtonStep;
   }
 }
 
@@ -142,6 +167,10 @@ export function StepEditor(props: StepEditorProps) {
   } = props;
 
   const idp = `step-${index}`;
+
+  // A button step matched by visible text ignores the target selector, so the
+  // "Target by / Target value" row is hidden in that mode.
+  const buttonByText = step.type === 'button' && (step.matchBy ?? 'selector') === 'text';
 
   function updateTarget(patch: Partial<Selector>) {
     onChange({ ...step, target: { ...step.target, ...patch } });
@@ -198,7 +227,7 @@ export function StepEditor(props: StepEditorProps) {
           >
             {STEP_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {STEP_TYPE_LABELS[t]}
               </option>
             ))}
           </select>
@@ -222,6 +251,28 @@ export function StepEditor(props: StepEditorProps) {
         </div>
       </div>
 
+      {step.type === 'button' && (
+        <div class="field">
+          <label for={`${idp}-btn-matchby`}>Find button by</label>
+          <select
+            id={`${idp}-btn-matchby`}
+            value={step.matchBy ?? 'selector'}
+            disabled={disabled}
+            onChange={(e) =>
+              onChange({
+                ...step,
+                matchBy: (e.target as HTMLSelectElement)
+                  .value as ButtonStep['matchBy'],
+              })
+            }
+          >
+            <option value="selector">selector (id / name / css)</option>
+            <option value="text">button text</option>
+          </select>
+        </div>
+      )}
+
+      {!buttonByText && (
       <div class="field-row">
         <div class="field">
           <label for={`${idp}-by`}>Target by</label>
@@ -261,6 +312,7 @@ export function StepEditor(props: StepEditorProps) {
           </small>
         </div>
       </div>
+      )}
 
       <StepTypeFields step={step} idp={idp} disabled={disabled} onChange={onChange} />
     </li>
@@ -544,5 +596,39 @@ function StepTypeFields(props: {
           </small>
         </>
       );
+
+    case 'button': {
+      // The "Find button by" selector is rendered above (next to Type/Label);
+      // here we only render the mode-specific detail.
+      const matchBy = step.matchBy ?? 'selector';
+      return matchBy === 'text' ? (
+        <div class="field">
+          <label for={`${idp}-btn-text`}>Button text</label>
+          <input
+            id={`${idp}-btn-text`}
+            type="text"
+            placeholder="e.g. Accept, Submit, Continue"
+            value={step.text ?? ''}
+            disabled={disabled}
+            aria-describedby={`${idp}-btn-text-hint`}
+            onInput={(e) =>
+              onChange({
+                ...step,
+                text: (e.target as HTMLInputElement).value,
+              })
+            }
+          />
+          <small id={`${idp}-btn-text-hint`} class="field-hint muted">
+            Matches the button's visible text exactly (case-insensitive).
+          </small>
+        </div>
+      ) : (
+        <small class="field-hint muted">
+          The button is located using the Target above. Tip: React ids like{' '}
+          <code>:r16:</code> work by id but change between renders — match by
+          button text for stability.
+        </small>
+      );
+    }
   }
 }

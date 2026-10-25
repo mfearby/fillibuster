@@ -55,7 +55,8 @@ export type FieldStep =
   | CheckStep
   | RadioStep
   | ContentEditableStep
-  | AutocompleteStep;
+  | AutocompleteStep
+  | ButtonStep;
 
 export interface BaseStep {
   id: string;
@@ -151,6 +152,33 @@ export interface AutocompleteStep extends BaseStep {
    * existing configs keep the fast path (Req 3.5).
    */
   simulateTyping?: boolean;
+}
+
+/**
+ * Click a button (Req 3.7).
+ *
+ * Covers buttons that submit, confirm a dialog, accept a declaration, etc. —
+ * anything activated by a click rather than filled with a value.
+ *
+ * Two ways to find the button:
+ *   - `matchBy: "selector"` (default) uses `target` like every other step
+ *     (`id`/`name`/`css`). Note React's `useId()` produces ids such as `:r16:`;
+ *     these resolve fine via the `id` selector (`getElementById`) but are
+ *     regenerated across renders, so they are brittle — prefer text matching.
+ *   - `matchBy: "text"` ignores `target` and finds the first button-like element
+ *     (`<button>`, `[role="button"]`, `<input type="submit|button|reset">`)
+ *     whose visible text (or `value`) equals `text`, case-insensitively and
+ *     trimmed. Robust against generated ids.
+ *
+ * `matchBy`/`text` are optional so a plain selector-based button step round-trips
+ * through older configs (Req 3.5).
+ */
+export interface ButtonStep extends BaseStep {
+  type: "button";
+  /** How to locate the button. Defaults to "selector" when omitted. */
+  matchBy?: "selector" | "text";
+  /** The button's visible text; required when `matchBy` is "text". */
+  text?: string;
 }
 
 /**

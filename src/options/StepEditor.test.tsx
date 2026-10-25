@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import type {
   AutocompleteStep,
+  ButtonStep,
   CheckStep,
   RadioStep,
   SelectStep,
@@ -94,5 +95,35 @@ describe('changeStepType — autocomplete', () => {
     const text = changeStepType(auto, 'text');
     expect(text.type).toBe('text');
     expect(text.id).toBe('step-1');
+  });
+});
+
+describe('changeStepType — button', () => {
+  it('produces a valid button step defaulting to selector match', () => {
+    const check: CheckStep = { ...base, type: 'check', checked: true };
+    const button = changeStepType(check, 'button') as ButtonStep;
+    expect(button.type).toBe('button');
+    expect(button.matchBy).toBe('selector');
+    expect(button.text).toBe('');
+  });
+
+  it('preserves id, target, and label when switching to button', () => {
+    const select: SelectStep = {
+      ...base,
+      type: 'select',
+      value: 'x',
+      matchBy: 'value',
+    };
+    const button = changeStepType(select, 'button');
+    expect(button.id).toBe('step-1');
+    expect(button.label).toBe('Contact method');
+    expect(button.target).toEqual({ by: 'name', value: 'contact' });
+  });
+
+  it('converts button to another type, resetting type-specific fields', () => {
+    const button: ButtonStep = { ...base, type: 'button', matchBy: 'text', text: 'Go' };
+    const check = changeStepType(button, 'check') as CheckStep;
+    expect(check.type).toBe('check');
+    expect(check.checked).toBe(false);
   });
 });
