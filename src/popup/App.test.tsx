@@ -24,13 +24,16 @@ import type { FillSummary } from '../content/fill';
 
 // --- Mocks -----------------------------------------------------------------
 
-const { sendUi, openOptionsPage, tabsQuery } = vi.hoisted(() => ({
+const { sendUi, openOptionsPage, tabsQuery, setPendingEdit } = vi.hoisted(() => ({
   sendUi: vi.fn(),
   openOptionsPage: vi.fn(async () => undefined),
   tabsQuery: vi.fn(async () => [{ id: 42 }]),
+  setPendingEdit: vi.fn(async () => undefined),
 }));
 
 vi.mock('../platform/rpc', () => ({ sendUi }));
+
+vi.mock('../platform/store', () => ({ setPendingEdit }));
 
 vi.mock('../platform/browser', () => {
   const browser = {
@@ -71,6 +74,7 @@ const SUMMARY: FillSummary = {
 beforeEach(() => {
   sendUi.mockReset();
   openOptionsPage.mockClear();
+  setPendingEdit.mockClear();
   tabsQuery.mockReset();
   tabsQuery.mockResolvedValue([{ id: 42 }]);
 });
@@ -90,6 +94,21 @@ describe('popup App', () => {
     expect(await screen.findByText('Login form')).toBeTruthy();
     expect(screen.getByText('Secret form')).toBeTruthy();
     expect(screen.getAllByText('Run')).toHaveLength(2);
+  });
+
+  it('edits a config: stashes the id and opens the options page (Req 6.2)', async () => {
+    sendUi.mockImplementation(async (msg: UiRequest) => {
+      if (msg.type === MessageType.ListMatchingConfigs) return ok(MATCHING);
+      return fail('error', 'unexpected');
+    });
+
+    render(<App />);
+    await screen.findByText('Login form');
+
+    fireEvent.click(screen.getByLabelText('Edit Login form'));
+
+    await waitFor(() => expect(setPendingEdit).toHaveBeenCalledWith('c1'));
+    await waitFor(() => expect(openOptionsPage).toHaveBeenCalled());
   });
 
   it('runs a config and shows the per-step summary', async () => {

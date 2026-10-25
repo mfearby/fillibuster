@@ -29,6 +29,7 @@ import type { OrchestratorResult } from '../background/orchestrator';
 import browser from '../platform/browser';
 import { MessageType, type ConfigSummary } from '../platform/messages';
 import { sendUi } from '../platform/rpc';
+import { setPendingEdit } from '../platform/store';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import type { FillSummary } from '../content/fill';
 
@@ -141,6 +142,17 @@ export function App() {
     void browser.runtime.openOptionsPage();
   }
 
+  /**
+   * Open the options page straight into the editor for a config (Req 6.2). The
+   * target id is handed off via `storage.session` (the two pages are separate
+   * documents and `openOptionsPage` takes no arguments); the options page reads
+   * it on mount and opens the editor.
+   */
+  async function editConfig(configId: string) {
+    await setPendingEdit(configId);
+    void browser.runtime.openOptionsPage();
+  }
+
   if (loading) {
     return (
       <main>
@@ -192,13 +204,22 @@ export function App() {
                 </span>
               ) : null}
             </span>
-            <button
-              class="primary"
-              disabled={running !== null}
-              onClick={() => runConfig(config.id)}
-            >
-              {running?.configId === config.id ? 'Running…' : 'Run'}
-            </button>
+            <div class="config-row-actions">
+              <button
+                class="primary"
+                disabled={running !== null}
+                onClick={() => runConfig(config.id)}
+              >
+                {running?.configId === config.id ? 'Running…' : 'Run'}
+              </button>
+              <button
+                disabled={running !== null}
+                aria-label={`Edit ${config.name}`}
+                onClick={() => void editConfig(config.id)}
+              >
+                Edit
+              </button>
+            </div>
           </li>
         ))}
       </ul>

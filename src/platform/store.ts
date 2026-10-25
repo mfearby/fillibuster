@@ -32,6 +32,17 @@ export const STATE_KEY = 'fillibuster:state';
 export const SESSION_KEY = 'fillibuster:sessionKey';
 
 /**
+ * The `storage.session` key carrying a one-shot "open this config in the
+ * editor" hand-off from the popup to the options page. The popup and options
+ * page are separate documents and `openOptionsPage()` takes no arguments, so
+ * the popup stashes the target config id here, opens the options page, and the
+ * options page reads+clears it on mount to jump straight into the editor. It
+ * lives in memory-only `storage.session` because it is transient navigation
+ * intent, not durable data.
+ */
+export const PENDING_EDIT_KEY = 'fillibuster:pendingEdit';
+
+/**
  * Chrome's `storage.local` quota is ~10 MB (Req 8.12). We warn once usage
  * crosses 80% of that so the developer can prune configs before writes start
  * failing, rather than silently dropping data.
@@ -257,4 +268,29 @@ export async function getSessionKey(): Promise<CryptoKey | null> {
 /** Forget the unlocked key (lock the session). */
 export async function clearSessionKey(): Promise<void> {
   await browser.storage.session.remove(SESSION_KEY);
+}
+
+// ---------------------------------------------------------------------------
+// Pending edit hand-off (popup → options page, storage.session)
+// ---------------------------------------------------------------------------
+
+/**
+ * Record that the options page should open straight into the editor for
+ * `configId` (set by the popup's Edit button before `openOptionsPage()`).
+ */
+export async function setPendingEdit(configId: string): Promise<void> {
+  await browser.storage.session.set({ [PENDING_EDIT_KEY]: configId });
+}
+
+/**
+ * Read and clear the pending-edit config id. Returns the id once (then `null`
+ * on subsequent reads), so a later manual reload of the options page doesn't
+ * re-trigger the editor.
+ */
+export async function takePendingEdit(): Promise<string | null> {
+  const stored = await browser.storage.session.get(PENDING_EDIT_KEY);
+  const configId = stored[PENDING_EDIT_KEY] as string | undefined;
+  if (!configId) return null;
+  await browser.storage.session.remove(PENDING_EDIT_KEY);
+  return configId;
 }

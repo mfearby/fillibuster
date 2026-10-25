@@ -27,6 +27,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { FillConfig } from '../core/schema';
 import { MessageType, type ConfigSummary } from '../platform/messages';
 import { sendUi } from '../platform/rpc';
+import { takePendingEdit } from '../platform/store';
 import { ConfigEditor } from './ConfigEditor';
 import { ConfigList } from './ConfigList';
 import { EncryptionSettings } from './EncryptionSettings';
@@ -83,6 +84,13 @@ export function App() {
 
   useEffect(() => {
     void refresh();
+    // If the popup asked us to edit a specific config, jump straight into its
+    // editor (Req 6.2). The hand-off is one-shot: `takePendingEdit` clears it,
+    // so a later manual reload stays on the list.
+    void (async () => {
+      const configId = await takePendingEdit();
+      if (configId) setView({ kind: 'editor', configId });
+    })();
   }, []);
 
   function openNew() {

@@ -76,8 +76,10 @@ import {
   saveState,
   setEncryptionEnabled,
   setKdf,
+  setPendingEdit,
   setSessionKey,
   setVerifier,
+  takePendingEdit,
   updateSettings,
 } from './store';
 
@@ -300,5 +302,22 @@ describe('storage byte-threshold warning (Req 8.12)', () => {
   it('saveState returns null when there is plenty of room', async () => {
     local.bytesInUse.mockResolvedValue(0);
     expect(await saveState(await loadState())).toBeNull();
+  });
+});
+
+describe('pending edit hand-off (popup → options, Req 6.2)', () => {
+  it('round-trips a pending-edit config id through storage.session', async () => {
+    await setPendingEdit('cfg-42');
+    expect(await takePendingEdit()).toBe('cfg-42');
+  });
+
+  it('is one-shot: a second take returns null', async () => {
+    await setPendingEdit('cfg-42');
+    expect(await takePendingEdit()).toBe('cfg-42');
+    expect(await takePendingEdit()).toBeNull();
+  });
+
+  it('returns null when nothing is pending', async () => {
+    expect(await takePendingEdit()).toBeNull();
   });
 });

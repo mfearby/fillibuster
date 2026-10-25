@@ -107,6 +107,12 @@ h1 {
   white-space: nowrap;
 }
 
+.config-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .lock-icon {
   margin-left: 4px;
   color: var(--muted);

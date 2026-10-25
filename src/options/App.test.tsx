@@ -29,6 +29,12 @@ const { sendUi } = vi.hoisted(() => ({ sendUi: vi.fn() }));
 
 vi.mock('../platform/rpc', () => ({ sendUi }));
 
+const { takePendingEdit } = vi.hoisted(() => ({
+  takePendingEdit: vi.fn(async (): Promise<string | null> => null),
+}));
+
+vi.mock('../platform/store', () => ({ takePendingEdit }));
+
 const { tabsQuery } = vi.hoisted(() => ({
   tabsQuery: vi.fn(async () => [{ id: 42 }] as Array<{ id?: number }>),
 }));
@@ -74,6 +80,8 @@ beforeEach(() => {
   sendUi.mockReset();
   tabsQuery.mockReset();
   tabsQuery.mockResolvedValue([{ id: 42 }]);
+  takePendingEdit.mockReset();
+  takePendingEdit.mockResolvedValue(null);
 });
 
 describe('options App', () => {
@@ -167,6 +175,24 @@ describe('options App', () => {
     expect(
       sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.DeleteConfig),
     ).toBe(false);
+  });
+
+  it('opens straight into the editor when the popup handed off a config to edit (Req 6.2)', async () => {
+    takePendingEdit.mockResolvedValue('c1');
+    sendUi.mockImplementation(async (msg: UiRequest) => {
+      if (msg.type === MessageType.ListConfigs) return ok(CONFIGS);
+      if (msg.type === MessageType.GetConfig) {
+        expect(msg.configId).toBe('c1');
+        return ok(STORED_C1);
+      }
+      return fail('unexpected');
+    });
+
+    render(<App />);
+
+    // The editor opens for the handed-off config without any click.
+    const input = (await screen.findByLabelText('Name')) as HTMLInputElement;
+    expect(input.value).toBe('Login form');
   });
 
   it('opens an existing config and saves an edited name via SaveConfig', async () => {
