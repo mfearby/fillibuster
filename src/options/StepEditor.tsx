@@ -19,6 +19,8 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 
+import { STEP_TYPE_LABELS } from '../core/schema';
+
 import type {
   AutocompleteStep,
   ButtonStep,
@@ -72,21 +74,7 @@ const STEP_TYPES: FieldStep['type'][] = [
   'button',
 ];
 
-/**
- * Friendly labels for the Type dropdown. The stored step `type` values are
- * unchanged (so saved configs keep working); this only affects what the user
- * reads. Where a bare type name is ambiguous — e.g. `button` is an action, not
- * a field — the label spells out the intent (Req 6.4).
- */
-const STEP_TYPE_LABELS: Record<FieldStep['type'], string> = {
-  text: 'text',
-  select: 'select',
-  check: 'checkbox',
-  radio: 'radio',
-  contenteditable: 'contenteditable',
-  autocomplete: 'autocomplete',
-  button: 'button (click)',
-};
+
 
 /** Default wait (ms) for a newly-created autocomplete step. */
 const DEFAULT_AUTOCOMPLETE_TIMEOUT_MS = 2000;
@@ -455,27 +443,8 @@ function StepTypeFields(props: {
     case 'text':
       return (
         <div class="field">
-          <label for={`${idp}-value`}>Value</label>
-          <input
-            id={`${idp}-value`}
-            type="text"
-            value={step.value}
-            disabled={disabled}
-            onInput={(e) =>
-              onChange({
-                ...step,
-                value: (e.target as HTMLInputElement).value,
-              })
-            }
-          />
-        </div>
-      );
-
-    case 'select':
-      return (
-        <div class="field-row">
-          <div class="field grow">
-            <label for={`${idp}-value`}>Value</label>
+          <label class="field-inline-left" for={`${idp}-value`}>
+            <span>Value</span>
             <input
               id={`${idp}-value`}
               type="text"
@@ -488,9 +457,32 @@ function StepTypeFields(props: {
                 })
               }
             />
+          </label>
+        </div>
+      );
+
+    case 'select':
+      return (
+        <div class="field-row">
+          <div class="field grow">
+            <label class="field-inline-left" for={`${idp}-value`}>
+              <span>Value</span>
+              <input
+                id={`${idp}-value`}
+                type="text"
+                value={step.value}
+                disabled={disabled}
+                onInput={(e) =>
+                  onChange({
+                    ...step,
+                    value: (e.target as HTMLInputElement).value,
+                  })
+                }
+              />
+            </label>
           </div>
-          <div class="field">
-            <label for={`${idp}-matchby`}>Match by</label>
+          <label class="field-inline-left" for={`${idp}-matchby`}>
+            <span>Match by</span>
             <select
               id={`${idp}-matchby`}
               value={step.matchBy}
@@ -506,7 +498,7 @@ function StepTypeFields(props: {
               <option value="value">value</option>
               <option value="text">text</option>
             </select>
-          </div>
+          </label>
         </div>
       );
 

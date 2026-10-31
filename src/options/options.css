@@ -538,6 +538,17 @@ input.grow {
   font-weight: 600;
 }
 
+/* The "Can't save yet" list shown when Save finds problems. */
+.save-problems p {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.save-problems ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
 /* Capture's explanation for its target choice (e.g. a random id was skipped). */
 .capture-note {
   margin: 4px 0 8px;

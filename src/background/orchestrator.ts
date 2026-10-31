@@ -30,6 +30,7 @@ import {
   importConfigs,
   importEnvelope,
 } from '../core/share';
+import { validateConfig } from '../core/validate';
 import browser from '../platform/browser';
 import {
   MessageType,
@@ -342,6 +343,10 @@ async function handleGetConfig(
 async function handleSaveConfig(
   config: FillConfig,
 ): Promise<OrchestratorResult<StoredConfig>> {
+  // Store only what import would accept, so every backup can be restored.
+  const valid = validateConfig(config);
+  if (!valid.ok) return failure('error', `Can't save this config: ${valid.error}`);
+
   if (config.encrypted) {
     const settings = await getSettings();
     if (!settings.encryptionEnabled) {

@@ -608,3 +608,15 @@ describe('backup and import of all configs', () => {
     });
   });
 });
+
+describe('saveConfig validation', () => {
+  it('refuses to store a config that import would reject', async () => {
+    const bad = plainConfig({
+      steps: [{ id: 's1', type: 'text', target: { by: 'id', value: '' }, value: 'x' }],
+    });
+    const res = await handleUiMessage({ type: MessageType.SaveConfig, config: bad });
+    expect(res).toMatchObject({ ok: false, code: 'error' });
+    if (!res.ok) expect(res.error).toMatch(/Can't save this config: .*target\.value/);
+    expect(await store.listConfigs()).toEqual([]);
+  });
+});

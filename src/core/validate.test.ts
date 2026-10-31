@@ -336,6 +336,22 @@ describe('validateConfig', () => {
       if (!res.ok) expect(res.error).toMatch(/steps\[6\]\.matchBy/);
     });
 
+    it('accepts an empty target on a button found by its text (target unused)', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[6]!['target'] = { by: 'id', value: '' };
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(true);
+    });
+
+    it('still rejects an empty target on a button found by selector', () => {
+      const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
+      cfg.steps[6]!['matchBy'] = 'selector';
+      cfg.steps[6]!['target'] = { by: 'id', value: '' };
+      const res = validateConfig(cfg);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error).toMatch(/steps\[6\]\.target\.value must be a non-empty string/);
+    });
+
     it('rejects a button step with matchBy "text" but empty text', () => {
       const cfg = asUnknown(validConfig()) as { steps: Array<Record<string, unknown>> };
       cfg.steps[6]!['text'] = '';

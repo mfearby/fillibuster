@@ -33,6 +33,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { FieldStep, FillConfig } from '../core/schema';
 import { MessageType, type EncryptionStatus } from '../platform/messages';
 import { sendUi } from '../platform/rpc';
+import { configProblems } from '../core/problems';
 import { MatchRuleEditor } from './MatchRuleEditor';
 import { StepEditor } from './StepEditor';
 
@@ -82,6 +83,8 @@ export function ConfigEditor(props: ConfigEditorProps) {
   const [loading, setLoading] = useState(draft === undefined);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Reasons the last Save was refused (empty targets, patterns, …).
+  const [problems, setProblems] = useState<string[]>([]);
   // Current encryption status, so the "Encrypted" toggle is only offered when
   // encryption is enabled + unlocked (Req 8.6).
   const [encStatus, setEncStatus] = useState<EncryptionStatus | null>(null);
@@ -235,8 +238,13 @@ export function ConfigEditor(props: ConfigEditorProps) {
 
   async function save() {
     if (!config) return;
-    setSaving(true);
     setError(null);
+    // Refuse to save anything a backup couldn't restore, and say what to fix.
+    const found = configProblems(config);
+    setProblems(found);
+    if (found.length > 0) return;
+
+    setSaving(true);
     const result = await sendUi({
       type: MessageType.SaveConfig,
       config: { ...config, updatedAt: Date.now() },
@@ -384,7 +392,22 @@ export function ConfigEditor(props: ConfigEditorProps) {
         )}
       </section>
 
-      {error ? <p class="error">{error}</p> : null}
+      {/* Always-mounted alert region (see ConfigList), so a refused Save is
+          announced, not just shown. */}
+      <div role="alert">
+        {problems.length > 0 ? (
+          <div class="error save-problems">
+            <p>Can't save yet. Please fix:</p>
+            <ul>
+              {problems.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        ) : error ? (
+          <p class="error">{error}</p>
+        ) : null}
+      </div>
 
       {/* A named region (landmark), so screen reader users can jump from
           anywhere in a long config straight to Save / Back. Built the same way

@@ -76,12 +76,24 @@ const SELECTOR_BY = ['id', 'name', 'label', 'css'] as const;
 const RULE_KINDS = ['exact', 'prefix', 'glob'] as const;
 const ERROR_STRATEGIES = ['stop', 'continue'] as const;
 
-function validateSelector(v: unknown, path: string): Result<Selector> {
+/**
+ * Validate a {@link Selector}. `allowEmptyValue` is for steps that don't use
+ * their target at all (a button matched by its text), where the editor hides
+ * the target fields and so saves an empty value.
+ */
+function validateSelector(
+  v: unknown,
+  path: string,
+  allowEmptyValue = false,
+): Result<Selector> {
   if (!isRecord(v)) return err(`${path} must be an object`);
   if (!(SELECTOR_BY as readonly string[]).includes(v['by'] as string)) {
     return err(`${path}.by must be one of ${SELECTOR_BY.join(', ')}`);
   }
-  if (typeof v['value'] !== 'string' || v['value'].length === 0) {
+  if (typeof v['value'] !== 'string') {
+    return err(`${path}.value must be a string`);
+  }
+  if (v['value'].length === 0 && !allowEmptyValue) {
     return err(`${path}.value must be a non-empty string`);
   }
   return ok({ by: v['by'] as Selector['by'], value: v['value'] });
@@ -102,7 +114,10 @@ function validateStep(v: unknown, path: string): Result<FieldStep> {
     return err(`${path}.label must be a string when present`);
   }
 
-  const selector = validateSelector(v['target'], `${path}.target`);
+  // A button found by its visible text ignores `target`; the editor hides the
+  // target fields in that mode, so an empty target value is expected there.
+  const targetUnused = type === 'button' && v['matchBy'] === 'text';
+  const selector = validateSelector(v['target'], `${path}.target`, targetUnused);
   if (!selector.ok) return selector;
 
   const base = { id: v['id'] as string, target: selector.value } as {

@@ -58,6 +58,23 @@ export type FieldStep =
   | AutocompleteStep
   | ButtonStep;
 
+/**
+ * Friendly display names for step types, used by the editor's Type dropdown
+ * and in messages. The stored `type` values are unchanged (so saved configs
+ * keep working); this only affects what the user reads. Where a bare type name
+ * is ambiguous — e.g. `button` is an action, not a field — the name spells out
+ * the intent (Req 6.4).
+ */
+export const STEP_TYPE_LABELS: Record<FieldStep['type'], string> = {
+  text: 'text',
+  select: 'select',
+  check: 'checkbox',
+  radio: 'radio',
+  contenteditable: 'contenteditable',
+  autocomplete: 'autocomplete',
+  button: 'button (click)',
+};
+
 export interface BaseStep {
   id: string;
   /** Human note shown in the editor. */

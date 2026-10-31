@@ -143,6 +143,8 @@ describe('ConfigEditor (task 12.2)', () => {
     expect(screen.getByLabelText('Content')).toBeTruthy();
     expect(screen.getByLabelText('Allow HTML')).toBeTruthy();
 
+    // A target is required to save.
+    fireEvent.input(screen.getByLabelText('Target value'), { target: { value: '#notes' } });
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => {
       const types = lastSavedConfig().steps.map((s) => s.type);
@@ -273,6 +275,9 @@ describe('ConfigEditor (task 12.2)', () => {
       const last = labels[labels.length - 1];
       if (!last) throw new Error('expected a description input');
       fireEvent.input(last, { target: { value: label } });
+      // A target is required to save.
+      const targets = screen.getAllByLabelText('Target value');
+      fireEvent.input(targets[targets.length - 1]!, { target: { value: `#${label}` } });
     }
 
     // Move step 3 (C) up -> A, C, B.
@@ -329,6 +334,50 @@ describe('ConfigEditor (task 12.2)', () => {
     await waitFor(() =>
       expect(lastSavedConfig().steps.map((s) => s.label)).toEqual(['A']),
     );
+  });
+
+  it('refuses to save, and lists what to fix, when a backup could not restore it', async () => {
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByText('Add step')); // text step, empty target
+    fireEvent.click(screen.getByLabelText('Add rule')); // empty pattern
+    fireEvent.click(screen.getByText('Save'));
+
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toMatch(/Can't save yet/);
+    expect(alert.textContent).toMatch(/Match rule 1: Pattern is empty\./);
+    expect(alert.textContent).toMatch(/Step 1 \(text\): Target value is empty\./);
+    expect(
+      sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.SaveConfig),
+    ).toBe(false);
+
+    // Fix both, save again: it goes through and the list clears.
+    fireEvent.input(screen.getByLabelText('Rule 1 pattern'), {
+      target: { value: 'https://example.com/*' },
+    });
+    fireEvent.input(screen.getByLabelText('Target value'), { target: { value: '#email' } });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(lastSavedConfig().steps).toHaveLength(1));
+    expect(screen.getByRole('alert').textContent).toBe('');
+  });
+
+  it('saves a button found by its text even though its target is empty', async () => {
+    render(
+      <ConfigEditor
+        draft={draft({
+          steps: [
+            { id: 'b', type: 'button', target: { by: 'id', value: '' }, matchBy: 'text', text: 'Accept' },
+          ],
+        })}
+        onSaved={noop}
+        onBack={noop}
+      />,
+    );
+    await screen.findByLabelText('Name');
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(lastSavedConfig().steps).toHaveLength(1));
   });
 
   it('goes back immediately when there are no unsaved changes', async () => {
@@ -415,7 +464,13 @@ describe('ConfigEditor (task 12.2)', () => {
 
     fireEvent.click(screen.getByLabelText('Add step after step 1'));
 
-    // New (unlabelled) step lands at position 2, between A and B.
+    // The new step's Type selector is the one that received focus.
+    const types = screen.getAllByLabelText('Type');
+    expect(document.activeElement).toBe(types[1]);
+
+    // New (unlabelled) step lands at position 2, between A and B. It needs a
+    // target before it can be saved.
+    fireEvent.input(screen.getAllByLabelText('Target value')[1]!, { target: { value: '#new' } });
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() =>
       expect(lastSavedConfig().steps.map((s) => s.label)).toEqual([
@@ -424,9 +479,6 @@ describe('ConfigEditor (task 12.2)', () => {
         'B',
       ]),
     );
-    // The new step's Type selector is the one that received focus.
-    const types = screen.getAllByLabelText('Type');
-    expect(document.activeElement).toBe(types[1]);
   });
 
   it('lets an encrypted config edit its (decrypted) steps and shows the Encrypted toggle (Req 8.6)', async () => {
