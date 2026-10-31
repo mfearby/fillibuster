@@ -43,9 +43,13 @@ describe('CaptureReview', () => {
 
     // Both candidates render a keep toggle + their step editor.
     expect(screen.getAllByLabelText(/^Keep field/)).toHaveLength(2);
-    // Each step header shows its (number-only) step number.
-    const stepNums = document.querySelectorAll('.step-num');
-    expect(Array.from(stepNums).map((n) => n.textContent)).toEqual(['1', '2']);
+    // Each step has a heading (level 3 here, under the page's h2) whose
+    // accessible text starts "Step N"; visually it is just the number.
+    const headings = screen.getAllByRole('heading', { level: 3 });
+    expect(headings.map((h) => h.textContent)).toEqual([
+      expect.stringMatching(/^Step 1, /),
+      expect.stringMatching(/^Step 2, /),
+    ]);
     // The fragile candidate shows the warning (Req 2.6).
     expect(screen.getByText(/Fragile selector/)).toBeTruthy();
   });

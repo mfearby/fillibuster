@@ -349,9 +349,10 @@ export function ConfigEditor(props: ConfigEditorProps) {
         onChange={(match) => patch({ match })}
       />
 
-      <div class="subsection">
+      {/* A named region: a landmark screen reader users can jump to. */}
+      <section class="subsection" aria-labelledby="steps-heading">
         <div class="subsection-head">
-          <h3>Steps</h3>
+          <h3 id="steps-heading">Steps</h3>
           <button type="button" disabled={saving} onClick={addStep}>
             Add step
           </button>
@@ -381,11 +382,19 @@ export function ConfigEditor(props: ConfigEditorProps) {
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
       {error ? <p class="error">{error}</p> : null}
 
-      <div class="actions">
+      {/* A named region (landmark), so screen reader users can jump from
+          anywhere in a long config straight to Save / Back. Built the same way
+          as "Match rules" and "Steps" — a <section> labelled by a heading —
+          because VoiceOver did not list a role="region" + aria-label version.
+          The heading is visually hidden and also appears in the Headings rotor. */}
+      <section class="actions" aria-labelledby="save-back-heading">
+        <h3 id="save-back-heading" class="visually-hidden">
+          Save and back
+        </h3>
         <button class="primary" disabled={saving} onClick={save}>
           {saving ? 'Saving…' : 'Save'}
         </button>
@@ -412,7 +421,7 @@ export function ConfigEditor(props: ConfigEditorProps) {
             Back
           </button>
         )}
-      </div>
+      </section>
     </section>
   );
 }

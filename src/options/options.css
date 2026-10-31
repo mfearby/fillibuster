@@ -326,6 +326,8 @@ h3 {
 }
 
 .step-num {
+  /* Now a real heading (h3/h4): drop the browser's heading margins. */
+  margin: 0;
   font-weight: 700;
   font-size: 18px;
   line-height: 1;

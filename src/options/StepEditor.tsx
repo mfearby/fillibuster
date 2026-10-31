@@ -53,6 +53,11 @@ export interface StepEditorProps {
   onAddAfter?: () => void;
   /** Ask "Delete this step?" inline before calling {@link StepEditorProps.onRemove}. */
   confirmRemove?: boolean;
+  /**
+   * Heading level for the step's "Step N" heading, so it nests under the
+   * surrounding page's headings. Defaults to 4 (under the editor's "Steps" h3).
+   */
+  headingLevel?: 3 | 4;
   /** Called once the one-shot {@link StepEditorProps.autoFocus} has been honored. */
   onFocused?: () => void;
 }
@@ -181,10 +186,19 @@ export function StepEditor(props: StepEditorProps) {
     onRemove,
     onAddAfter,
     confirmRemove,
+    headingLevel,
     onFocused,
   } = props;
 
   const idp = `step-${index}`;
+
+  // Accessible step heading: visually just the number, read as
+  // "Step 2, text, Email field" (type, then the description when there is one).
+  const Heading = `h${headingLevel ?? 4}` as 'h3' | 'h4';
+  const headingId = `${idp}-heading`;
+  const headingText = `Step ${index + 1}, ${STEP_TYPE_LABELS[step.type]}${
+    step.label ? `, ${step.label}` : ''
+  }`;
 
   // A button step matched by visible text ignores the target selector, so the
   // "Target by / Target value" row is hidden in that mode.
@@ -227,8 +241,21 @@ export function StepEditor(props: StepEditorProps) {
 
   return (
     <li class="step-row" ref={rowRef}>
+      {/* A named group, so a screen reader says e.g. "Step 2, text, group"
+          when focus moves into this step. The heading also lists each step in
+          VoiceOver's Rotor (VO+U) for jumping straight to it. */}
+      <div role="group" aria-labelledby={headingId}>
       <div class="step-head">
-        <span class="step-num">{index + 1}</span>
+        {/* tabIndex -1: focusable by script and by VoiceOver's cursor (with
+            "keyboard focus follows VoiceOver cursor"), so after a Rotor jump
+            to this heading the next Tab goes into this step. Not in the normal
+            Tab order, so keyboard-only users are unaffected. */}
+        <Heading class="step-num" id={headingId} tabIndex={-1}>
+          {/* One hidden string carries the full spoken name, so it is read
+              identically everywhere; the visible number is hidden from AT. */}
+          <span class="visually-hidden">{headingText}</span>
+          <span aria-hidden="true">{index + 1}</span>
+        </Heading>
 
         <label class="step-type" for={`${idp}-type`}>
           <span>Type</span>
@@ -406,6 +433,7 @@ export function StepEditor(props: StepEditorProps) {
       )}
 
       <StepTypeFields step={step} idp={idp} disabled={disabled} onChange={onChange} />
+      </div>
     </li>
   );
 }

@@ -137,6 +137,7 @@ export function CaptureReview(props: CaptureReviewProps) {
                     onMoveUp={() => undefined}
                     onMoveDown={() => undefined}
                     onRemove={() => setItem(index, { keep: false })}
+                    headingLevel={3}
                   />
                 </ul>
               ) : null}

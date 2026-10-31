@@ -91,16 +91,16 @@ export function ConfigList(props: ConfigListProps) {
         </button>
       </div>
 
-      {notice ? (
-        <p class="ok list-message" role="status">
-          {notice}
-        </p>
-      ) : null}
-      {error ? (
-        <p class="error list-message" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {/* The live regions are ALWAYS rendered (empty when there's nothing to
+          say) and only their contents change. Screen readers announce changes
+          inside a region they already know about; a region inserted together
+          with its text is often missed. */}
+      <div role="status" aria-live="polite">
+        {notice ? <p class="ok list-message">{notice}</p> : null}
+      </div>
+      <div role="alert">
+        {error ? <p class="error list-message">{error}</p> : null}
+      </div>
 
       {configs.length === 0 ? (
         <div class="empty">

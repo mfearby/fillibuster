@@ -53,6 +53,37 @@ describe('ConfigList messages', () => {
   });
 });
 
+describe('ConfigList live regions', () => {
+  it('keeps the status and alert regions mounted and fills them in place', () => {
+    const props = {
+      configs: CONFIGS,
+      busy: false,
+      onNew: vi.fn(),
+      onOpen: vi.fn(),
+      onDelete: vi.fn(),
+      onExport: vi.fn(),
+      onImport: vi.fn(),
+      onBackup: vi.fn(),
+      onEncryption: vi.fn(),
+    };
+    const { rerender } = render(<ConfigList {...props} notice={null} error={null} />);
+
+    // Both regions exist, empty, before there is anything to announce.
+    const status = screen.getByRole('status');
+    const alert = screen.getByRole('alert');
+    expect(status.textContent).toBe('');
+    expect(alert.textContent).toBe('');
+
+    rerender(<ConfigList {...props} notice="Downloaded 1 config." error="Unlock first." />);
+
+    // The SAME elements now hold the text, so the change is announced.
+    expect(screen.getByRole('status')).toBe(status);
+    expect(screen.getByRole('alert')).toBe(alert);
+    expect(status.textContent).toBe('Downloaded 1 config.');
+    expect(alert.textContent).toBe('Unlock first.');
+  });
+});
+
 describe('ConfigList encryption markers', () => {
   it('shows a lock on an encrypted config', () => {
     renderList();

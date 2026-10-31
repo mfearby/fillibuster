@@ -19,7 +19,7 @@
  * Requirements: 2.1, 6.2, 6.3, 6.4, 6.5
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/preact';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OrchestratorResult } from '../background/orchestrator';
@@ -148,6 +148,46 @@ describe('ConfigEditor (task 12.2)', () => {
       const types = lastSavedConfig().steps.map((s) => s.type);
       expect(types).toEqual(['contenteditable']);
     });
+  });
+
+  it('names each step for screen readers and exposes Steps as a landmark', async () => {
+    render(
+      <ConfigEditor
+        draft={draft({
+          steps: [
+            { id: 'a', type: 'text', label: 'Email field', target: { by: 'id', value: 'a' }, value: '' },
+            { id: 'b', type: 'button', target: { by: 'id', value: 'b' } },
+          ],
+        })}
+        onSaved={noop}
+        onBack={noop}
+      />,
+    );
+    await screen.findByLabelText('Name');
+
+    // Each step is a group named by its heading: "Step N, <type>[, <description>]".
+    expect(screen.getByRole('group', { name: 'Step 1, text, Email field' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Step 2, button (click)' })).toBeTruthy();
+    // ...and the headings sit at level 4, under the "Steps" h3.
+    const headings = screen.getAllByRole('heading', { level: 4 });
+    expect(headings).toHaveLength(2);
+    // Focusable by script / VoiceOver, but kept out of the Tab order.
+    for (const h of headings) {
+      expect(h.getAttribute('tabindex')).toBe('-1');
+      h.focus();
+      expect(document.activeElement).toBe(h);
+    }
+    // Match rules and Steps are named regions (landmarks).
+    expect(screen.getByRole('region', { name: 'Steps' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Match rules' })).toBeTruthy();
+    // Save / Back live in their own landmark for a quick jump to the bottom.
+    const actions = screen.getByRole('region', { name: 'Save and back' });
+    expect(within(actions).getByText('Save')).toBeTruthy();
+    expect(within(actions).getByText('Back')).toBeTruthy();
+    // Built like the other two (a <section> labelled by a heading), which is
+    // the form VoiceOver lists; the heading is also in the Headings rotor.
+    expect(actions.tagName).toBe('SECTION');
+    expect(screen.getByRole('heading', { level: 3, name: 'Save and back' })).toBeTruthy();
   });
 
   it('focuses the new step\'s Type selector when a step is added', async () => {

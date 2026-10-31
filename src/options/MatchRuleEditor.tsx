@@ -41,9 +41,9 @@ export function MatchRuleEditor(props: MatchRuleEditorProps) {
   // can't be removed); later rows do. Only the last row gets Add rule. With no
   // rules at all, Add rule lives in the header so there is still a way to start.
   return (
-    <div class="subsection">
+    <section class="subsection" aria-labelledby="match-rules-heading">
       <div class="subsection-head">
-        <h3>Match rules</h3>
+        <h3 id="match-rules-heading">Match rules</h3>
         {rules.length === 0 ? (
           <button
             type="button"
@@ -135,6 +135,6 @@ export function MatchRuleEditor(props: MatchRuleEditorProps) {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
