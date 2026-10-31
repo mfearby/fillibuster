@@ -17,7 +17,7 @@
  * Requirements: 2.1, 6.3, 6.4
  */
 
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 import type {
   AutocompleteStep,
@@ -49,6 +49,10 @@ export interface StepEditorProps {
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
+  /** When provided, shows a "+" that inserts a new step directly below this one. */
+  onAddAfter?: () => void;
+  /** Ask "Delete this step?" inline before calling {@link StepEditorProps.onRemove}. */
+  confirmRemove?: boolean;
   /** Called once the one-shot {@link StepEditorProps.autoFocus} has been honored. */
   onFocused?: () => void;
 }
@@ -175,6 +179,8 @@ export function StepEditor(props: StepEditorProps) {
     onMoveUp,
     onMoveDown,
     onRemove,
+    onAddAfter,
+    confirmRemove,
     onFocused,
   } = props;
 
@@ -186,6 +192,16 @@ export function StepEditor(props: StepEditorProps) {
 
   const rowRef = useRef<HTMLLIElement>(null);
   const typeRef = useRef<HTMLSelectElement>(null);
+  const deleteRef = useRef<HTMLButtonElement>(null);
+
+  // Inline delete confirmation (only used when `confirmRemove` is set).
+  const [confirming, setConfirming] = useState(false);
+
+  // Focus Delete when the confirmation opens, so the common case (the user
+  // meant to delete) is one Enter away. Tab moves to Cancel.
+  useEffect(() => {
+    if (confirming) deleteRef.current?.focus();
+  }, [confirming]);
 
   // When the parent adds this step, scroll it into view and focus its first
   // field (the Type selector) so typing can begin immediately. One-shot:
@@ -270,17 +286,59 @@ export function StepEditor(props: StepEditorProps) {
           >
             ↓
           </button>
+          {onAddAfter ? (
+            <button
+              type="button"
+              class="icon-button"
+              disabled={disabled}
+              aria-label={`Add step after step ${index + 1}`}
+              title="Add step below"
+              onClick={onAddAfter}
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+          ) : null}
           <button
             type="button"
-            class="danger"
+            class="icon-button danger"
             disabled={disabled}
             aria-label={`Remove step ${index + 1}`}
-            onClick={onRemove}
+            title="Remove step"
+            onClick={() => (confirmRemove ? setConfirming(true) : onRemove())}
           >
-            Remove
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
       </div>
+
+      {confirming ? (
+        <div
+          class="step-confirm"
+          role="group"
+          aria-label={`Confirm removing step ${index + 1}`}
+        >
+          <span class="confirm-text">Delete this step?</span>
+          <button
+            type="button"
+            class="danger"
+            ref={deleteRef}
+            disabled={disabled}
+            onClick={() => {
+              setConfirming(false);
+              onRemove();
+            }}
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setConfirming(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {step.type === 'button' && (
         <div class="field">

@@ -257,12 +257,90 @@ describe('ConfigEditor (task 12.2)', () => {
       ]);
     });
 
-    // Remove the first step (C) -> A, B.
+    // Remove the first step (C) -> A, B. Removal asks for confirmation first.
     fireEvent.click(screen.getByLabelText('Remove step 1'));
+    fireEvent.click(screen.getByText('Delete'));
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => {
       expect(lastSavedConfig().steps.map((s) => s.label)).toEqual(['A', 'B']);
     });
+  });
+
+  it('keeps the step when the delete confirmation is cancelled', async () => {
+    render(
+      <ConfigEditor
+        draft={draft({
+          steps: [
+            { id: 'a', type: 'text', label: 'A', target: { by: 'id', value: 'a' }, value: '' },
+          ],
+        })}
+        onSaved={noop}
+        onBack={noop}
+      />,
+    );
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByLabelText('Remove step 1'));
+    expect(screen.getByText('Delete this step?')).toBeTruthy();
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByText('Delete this step?')).toBeNull();
+
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() =>
+      expect(lastSavedConfig().steps.map((s) => s.label)).toEqual(['A']),
+    );
+  });
+
+  it('focuses Delete when the delete confirmation appears', async () => {
+    render(
+      <ConfigEditor
+        draft={draft({
+          steps: [
+            { id: 'a', type: 'text', label: 'A', target: { by: 'id', value: 'a' }, value: '' },
+          ],
+        })}
+        onSaved={noop}
+        onBack={noop}
+      />,
+    );
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByLabelText('Remove step 1'));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByText('Delete')),
+    );
+  });
+
+  it('adds a step directly below the chosen step and focuses it', async () => {
+    render(
+      <ConfigEditor
+        draft={draft({
+          steps: [
+            { id: 'a', type: 'text', label: 'A', target: { by: 'id', value: 'a' }, value: '' },
+            { id: 'b', type: 'text', label: 'B', target: { by: 'id', value: 'b' }, value: '' },
+          ],
+        })}
+        onSaved={noop}
+        onBack={noop}
+      />,
+    );
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByLabelText('Add step after step 1'));
+
+    // New (unlabelled) step lands at position 2, between A and B.
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() =>
+      expect(lastSavedConfig().steps.map((s) => s.label)).toEqual([
+        'A',
+        undefined,
+        'B',
+      ]),
+    );
+    // The new step's Type selector is the one that received focus.
+    const types = screen.getAllByLabelText('Type');
+    expect(document.activeElement).toBe(types[1]);
   });
 
   it('lets an encrypted config edit its (decrypted) steps and shows the Encrypted toggle (Req 8.6)', async () => {

@@ -172,6 +172,16 @@ export function ConfigEditor(props: ConfigEditorProps) {
     setFocusStepId(step.id);
   }
 
+  /** Insert a new text step directly below the step at `index` and focus it. */
+  function addStepAfter(index: number) {
+    if (!config) return;
+    const step = newStep('text');
+    const steps = config.steps.slice();
+    steps.splice(index + 1, 0, step);
+    patch({ steps });
+    setFocusStepId(step.id);
+  }
+
   function updateStep(index: number, step: FieldStep) {
     if (!config) return;
     patch({ steps: config.steps.map((s, i) => (i === index ? step : s)) });
@@ -337,6 +347,8 @@ export function ConfigEditor(props: ConfigEditorProps) {
                 onMoveUp={() => moveStep(index, -1)}
                 onMoveDown={() => moveStep(index, 1)}
                 onRemove={() => removeStep(index)}
+                onAddAfter={() => addStepAfter(index)}
+                confirmRemove
                 onFocused={() => setFocusStepId(null)}
               />
             ))}

@@ -287,6 +287,16 @@ h3 {
   padding: 7px 10px;
 }
 
+/* Inline "Delete this step?" confirmation shown under a step's header,
+   right-aligned so it sits beneath the ✕ that opened it. */
+.step-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .rule-actions {
   display: flex;
   gap: 6px;
