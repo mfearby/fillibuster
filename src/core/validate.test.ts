@@ -136,6 +136,14 @@ describe('validateConfig', () => {
     });
   });
 
+  it('accepts a label selector', () => {
+    const cfg = validConfig();
+    cfg.steps[0]!.target = { by: 'label', value: 'Mobile number' };
+    const res = validateConfig(asUnknown(cfg));
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.value.steps[0]!.target).toEqual({ by: 'label', value: 'Mobile number' });
+  });
+
   describe('invalid selectors', () => {
     it('rejects a bad selector.by', () => {
       const cfg = validConfig();

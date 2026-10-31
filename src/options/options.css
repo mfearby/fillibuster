@@ -398,7 +398,10 @@ h3 {
 /* The autocomplete "Wait (ms)" number field is short — keep it compact so it
    doesn't stretch across the row. */
 .timeout-input {
-  width: 7ch;
+  /* Room for 6 digits, plus the 10px left/right padding and the number
+     spinner (box-sizing is border-box, so width includes both). */
+  width: calc(6ch + 20px + 24px);
+  flex-shrink: 0;
 }
 
 /* Config-level Name + Error strategy share one row, 50% each, with the caption
@@ -533,6 +536,11 @@ input.grow {
   align-items: center;
   gap: 6px;
   font-weight: 600;
+}
+
+/* Capture's explanation for its target choice (e.g. a random id was skipped). */
+.capture-note {
+  margin: 4px 0 8px;
 }
 
 .fragile-warning {

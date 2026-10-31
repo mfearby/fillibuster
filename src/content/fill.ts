@@ -39,6 +39,7 @@ import type {
   SelectStep,
   TextStep,
 } from '../core/schema';
+import { resolveAllByLabel } from './labels';
 
 /** Outcome of applying a single step. */
 export interface StepResult {
@@ -106,6 +107,9 @@ export function resolveTarget(
       }
       return null;
     }
+    case 'label':
+      // Whole label first (labels can contain commas), then a comma fallback list.
+      return resolveAllByLabel(selector.value, root)[0] ?? null;
     case 'css':
       return root.querySelector(selector.value);
     default:
@@ -311,6 +315,11 @@ function radioGroup(
   el: HTMLInputElement,
   root: Document | Element,
 ): HTMLInputElement[] {
+  // Targeted by label, a radio group often resolves to its container (a
+  // `<fieldset>` with a legend, or a `role="radiogroup"`): use the radios inside.
+  if (el.tagName.toLowerCase() !== 'input') {
+    return Array.from(el.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
+  }
   const name = el.getAttribute('name');
   if (!name) return [el];
   const selector = `input[type="radio"][name="${cssAttrEscape(name)}"]`;
@@ -622,6 +631,8 @@ function resolveAll(selector: Selector, root: Document | Element): Element[] {
       }
       return [];
     }
+    case 'label':
+      return resolveAllByLabel(selector.value, root);
     default:
       return [];
   }

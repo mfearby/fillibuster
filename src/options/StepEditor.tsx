@@ -91,7 +91,7 @@ const STEP_TYPE_LABELS: Record<FieldStep['type'], string> = {
 /** Default wait (ms) for a newly-created autocomplete step. */
 const DEFAULT_AUTOCOMPLETE_TIMEOUT_MS = 2000;
 
-const SELECTOR_BYS: Selector['by'][] = ['id', 'name', 'css'];
+const SELECTOR_BYS: Selector['by'][] = ['id', 'name', 'label', 'css'];
 
 /** Placeholder text for the target value input, per selector kind. */
 function targetPlaceholder(by: Selector['by']): string {
@@ -100,6 +100,8 @@ function targetPlaceholder(by: Selector['by']): string {
       return 'emailField  (or a comma list of fallback ids)';
     case 'name':
       return 'user[email]  (or a comma list of fallback names)';
+    case 'label':
+      return 'Mobile number  (the field\'s label text)';
     case 'css':
       return '#email, input[name="x"], .selector';
   }
@@ -116,6 +118,8 @@ function targetHint(by: Selector['by']): string {
       return 'A single id, or several ids separated by commas — tried in order, first found is used.';
     case 'name':
       return 'A single name, or several names separated by commas — tried in order, first found is used.';
+    case 'label':
+      return 'The field\'s label (aria-label, <label>, or a group\'s legend), ignoring case. Good when ids look random. If the full text matches nothing, it is tried as a comma list of fallbacks.';
     case 'css':
       return 'A CSS selector. A comma list matches the first in page order.';
   }

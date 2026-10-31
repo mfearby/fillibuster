@@ -45,6 +45,8 @@ interface ReviewItem {
   step: FieldStep;
   keep: boolean;
   fragile: boolean;
+  /** Capture's explanation of its target choice (e.g. a random id was skipped). */
+  note?: string;
 }
 
 /** Build a fresh draft config whose steps are exactly `steps` (Req 2.5). */
@@ -68,7 +70,12 @@ export function CaptureReview(props: CaptureReviewProps) {
   // Seed one review item per candidate; every candidate is kept by default so
   // the developer prunes rather than opts in one by one (Req 2.5).
   const [items, setItems] = useState<ReviewItem[]>(() =>
-    candidates.map((c) => ({ step: c.step, keep: true, fragile: c.fragile })),
+    candidates.map((c) => ({
+      step: c.step,
+      keep: true,
+      fragile: c.fragile,
+      note: c.note,
+    })),
   );
 
   function setItem(index: number, patch: Partial<ReviewItem>) {
@@ -125,6 +132,7 @@ export function CaptureReview(props: CaptureReviewProps) {
                   </span>
                 ) : null}
               </div>
+              {item.note ? <p class="field-hint muted capture-note">{item.note}</p> : null}
 
               {item.keep ? (
                 <ul class="step-list">

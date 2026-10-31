@@ -25,7 +25,10 @@ from, then opening review), configs are created manually in the options editor
 or via import.
 
 The engine, review component, and tests are kept in place deliberately so the
-feature can be finished later without rebuilding it. If you wire up a new entry
+feature can be finished later without rebuilding it. The engine already skips
+ids and names that look auto-generated (random numbers, UUIDs, React `useId`,
+UI-library counters) and, when it skips an id, targets the field by its label
+instead, with a note on the review screen explaining why. If you wire up a new entry
 point, it should send a `CaptureTab` request for the target tab and render
 `CaptureReview` with the returned candidates.
 

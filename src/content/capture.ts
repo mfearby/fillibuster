@@ -13,11 +13,16 @@
  * anything is persisted (Req 2.5, handled later in task 12.3).
  *
  * Selector preference (Req 2.3):
- *   1. `id`   — when the element has a non-empty, unique `id`.
- *   2. `name` — when the element has a non-empty, unique `name`.
- *   3. `css`  — a path built from a unique stable attribute where possible, or
- *               an `nth-of-type` positional path as a last resort. Only the
- *               positional fallback is considered fragile.
+ *   1. `id`    — when the element has a non-empty, unique `id`.
+ *   2. `name`  — when the element has a non-empty, unique `name`.
+ *   3. `label` — when one of its labels identifies it uniquely.
+ *   4. `css`   — a path built from a unique stable attribute where possible, or
+ *                an `nth-of-type` positional path as a last resort. Only the
+ *                positional fallback is considered fragile.
+ *
+ * Ids and names that look generated at runtime (random numbers, UUIDs, React
+ * `useId`, UI-library counters) are never used. When the id is skipped, the
+ * label is tried before the name, and the candidate carries a `note` saying so.
  *
  * Requirements: 2.2, 2.3, 2.4, 2.6
  */
@@ -31,6 +36,7 @@ import type {
   SelectStep,
   TextStep,
 } from '../core/schema';
+import { findAllByLabel, labelsOf } from './labels';
 
 /**
  * A single capture result: the candidate step plus capture metadata. The UI
@@ -44,6 +50,37 @@ export interface CaptureCandidate {
    * built, so the UI can prompt the developer to fix or remove it (Req 2.6).
    */
   fragile: boolean;
+  /**
+   * Why capture chose a different target than the obvious one — e.g. the id
+   * looked auto-generated, so the field is targeted by its label instead.
+   * Shown to the developer on the review screen.
+   */
+  note?: string;
+}
+
+/**
+ * Patterns for ids/names that are generated at runtime and so change between
+ * page loads or renders — never safe to save in a config.
+ */
+const GENERATED_PATTERNS: RegExp[] = [
+  // A long run of digits: Math.random() ("…-0.8075095940726259"), timestamps,
+  // big counters.
+  /\d{6,}/,
+  // UUIDs.
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+  // React useId(): ":r16:" (React 18) and "«r1»" (React 19).
+  /^:[a-z0-9]+:$/i,
+  /^«[a-z0-9]+»$/i,
+  // A long hex-looking run mixing digits and letters ("input-a3f9c2e1b4").
+  /(?:^|[^0-9a-z])(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{10,}(?:$|[^0-9a-z])/i,
+  // Prefixes UI libraries use for per-render counters ("mui-12",
+  // "react-select-3-input", "headlessui-listbox-button-5", "radix-:r1:").
+  /^(?:mui-|radix-|headlessui-|react-select-|downshift-|ember\d|rc[-_]|ext-gen|yui_)/i,
+];
+
+/** True when an id/name looks generated at runtime and so unstable. */
+export function looksGenerated(value: string): boolean {
+  return GENERATED_PATTERNS.some((re) => re.test(value));
 }
 
 /**
@@ -113,11 +150,13 @@ export function capturePage(
       }
     }
 
-    const { selector, fragile } = deriveRadioSelector(el, kind, doc);
+    const { selector, fragile, note } = deriveRadioSelector(el, kind, doc);
     const step = buildStep(el, kind, selector);
     if (!step) continue;
 
-    candidates.push({ step, fragile });
+    const candidate: CaptureCandidate = { step, fragile };
+    if (note) candidate.note = note;
+    candidates.push(candidate);
   }
 
   return candidates;
@@ -134,7 +173,7 @@ function deriveRadioSelector(
   el: Element,
   kind: ControlKind,
   root: Document | Element,
-): { selector: Selector; fragile: boolean } {
+): DerivedSelector {
   if (kind === 'radio') {
     const name = el.getAttribute('name');
     if (name) {
@@ -196,33 +235,71 @@ function isContentEditable(el: Element): boolean {
   return attr.toLowerCase() !== 'false';
 }
 
+/** A derived selector, its fragility, and an optional explanation for the UI. */
+export interface DerivedSelector {
+  selector: Selector;
+  fragile: boolean;
+  note?: string;
+}
+
 /**
  * Derive the most stable selector for `el` and whether it is fragile (Req 2.3,
  * 2.6).
  *
- * Preference: unique `id` → unique `name` → a CSS path. The CSS path first
- * tries a unique stable attribute; failing that it builds an `nth-of-type`
- * positional path, which is the only case flagged fragile.
+ * Normal preference: unique `id` → unique `name` → unique label → a CSS path.
+ * The CSS path first tries a unique stable attribute; failing that it builds an
+ * `nth-of-type` positional path, which is the only case flagged fragile.
+ *
+ * Ids and names that look generated at runtime ({@link looksGenerated}) are
+ * skipped. When the id was skipped, the label is preferred over the name: a
+ * page that generates ids is often a component library whose names are generic
+ * too (`name="number"`), while the label is what a person reads. A `note`
+ * explains the choice.
  */
 export function deriveSelector(
   el: Element,
   root: Document | Element = ownerDocument(el),
-): { selector: Selector; fragile: boolean } {
+): DerivedSelector {
   const id = el.getAttribute('id');
-  if (id && isUnique(root, `#${cssEscape(id)}`)) {
+  const idGenerated = !!id && looksGenerated(id);
+  if (id && !idGenerated && isUnique(root, `#${cssEscape(id)}`)) {
     return { selector: { by: 'id', value: id }, fragile: false };
   }
 
   const name = el.getAttribute('name');
-  if (name && isUnique(root, `[name="${cssAttrEscape(name)}"]`)) {
-    return { selector: { by: 'name', value: name }, fragile: false };
+  const nameGenerated = !!name && looksGenerated(name);
+  const nameUsable =
+    !!name && !nameGenerated && isUnique(root, `[name="${cssAttrEscape(name)}"]`);
+  const label = uniqueLabel(el, root);
+
+  // Explain whatever we end up choosing when an obvious id/name was skipped.
+  const skipped = idGenerated
+    ? `Its id "${id}" looks auto-generated`
+    : nameGenerated
+      ? `Its name "${name}" looks auto-generated`
+      : null;
+  const because = (target: string) =>
+    skipped ? { note: `${skipped}, so it is targeted by ${target} instead.` } : {};
+
+  if (idGenerated && label) {
+    return { selector: { by: 'label', value: label }, fragile: false, ...because('its label') };
+  }
+  if (nameUsable) {
+    return { selector: { by: 'name', value: name! }, fragile: false, ...because('its name') };
+  }
+  if (label) {
+    return { selector: { by: 'label', value: label }, fragile: false, ...because('its label') };
   }
 
-  // Try a unique stable attribute (test hooks, ARIA labels, etc.) before
+  // Try a unique stable attribute (test hooks, placeholders, etc.) before
   // resorting to a positional path.
   const stable = stableAttributeSelector(el, root);
   if (stable) {
-    return { selector: { by: 'css', value: stable }, fragile: false };
+    return {
+      selector: { by: 'css', value: stable },
+      fragile: false,
+      ...because('a CSS selector'),
+    };
   }
 
   // Last resort: an nth-of-type positional path. This is brittle — page layout
@@ -230,7 +307,20 @@ export function deriveSelector(
   return {
     selector: { by: 'css', value: positionalPath(el) },
     fragile: true,
+    ...because('its position on the page'),
   };
+}
+
+/**
+ * The first of `el`'s labels that identifies it uniquely on the page, or `null`
+ * when it has no label or every label is shared with another control.
+ */
+function uniqueLabel(el: Element, root: Document | Element): string | null {
+  for (const label of labelsOf(el)) {
+    const matches = findAllByLabel(label, root);
+    if (matches.length === 1 && matches[0] === el) return label;
+  }
+  return null;
 }
 
 /**
@@ -277,10 +367,12 @@ function positionalPath(el: Element): string {
     segments.unshift(index > 0 ? `${tag}:nth-of-type(${index})` : tag);
 
     const parent: Element | null = current.parentElement;
-    // Stop once we can anchor at an element with an id — that shortens and
-    // stabilizes the path.
-    if (parent && parent.getAttribute('id')) {
-      segments.unshift(`#${cssEscape(parent.getAttribute('id') as string)}`);
+
+    // Stop once we can anchor at an element with a stable id — that shortens
+    // and stabilizes the path. A generated id would make the path break.
+    const parentId = parent?.getAttribute('id');
+    if (parent && parentId && !looksGenerated(parentId)) {
+      segments.unshift(`#${cssEscape(parentId)}`);
       return segments.join(' > ');
     }
     current = parent;
@@ -408,16 +500,10 @@ function checkedRadioValue(el: Element): string {
  * `aria-label`, `placeholder`, or `name`. Purely informational.
  */
 function deriveLabel(el: Element): string | undefined {
-  const id = el.getAttribute('id');
-  const doc = ownerDocument(el);
-  if (id && doc) {
-    const label = doc.querySelector(`label[for="${cssAttrEscape(id)}"]`);
-    const text = label?.textContent?.trim();
-    if (text) return text;
-  }
-
-  const aria = el.getAttribute('aria-label')?.trim();
-  if (aria) return aria;
+  // Prefer a real label (aria-label, aria-labelledby, <label>), shared with
+  // `Target by: label` so the description matches what the field is called.
+  const label = labelsOf(el)[0];
+  if (label) return label;
 
   const placeholder = el.getAttribute('placeholder')?.trim();
   if (placeholder) return placeholder;

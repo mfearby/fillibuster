@@ -778,3 +778,76 @@ describe('applySteps — button (Req 3.7)', () => {
     expect(summary.results[0]?.reason).toBe(NOT_FOUND_REASON);
   });
 });
+
+describe('resolveTarget — by label', () => {
+  const byLabel = (value: string) => resolveTarget({ by: 'label', value }, document);
+
+  it('matches aria-label, ignoring case and extra spaces', () => {
+    mount('<input id="phone-number-input-0.8075095940726259" aria-label="Mobile number" />');
+    expect(byLabel('  mobile   NUMBER ')).toBe(document.querySelector('input'));
+  });
+
+  it('matches aria-labelledby text', () => {
+    mount(`
+      <span id="l1">Home</span><span id="l2">phone</span>
+      <input aria-labelledby="l1 l2" />`);
+    expect(byLabel('Home phone')).toBe(document.querySelector('input'));
+  });
+
+  it('matches <label for> and a wrapping <label>', () => {
+    mount(`
+      <label for="e">Email</label><input id="e" />
+      <label>Postcode <input class="pc" /></label>`);
+    expect(byLabel('Email')).toBe(document.getElementById('e'));
+    expect(byLabel('Postcode')).toBe(document.querySelector('.pc'));
+  });
+
+  it("ignores a wrapped select's option text when reading its label", () => {
+    mount('<label>State <select><option>NSW</option><option>VIC</option></select></label>');
+    expect(byLabel('State')).toBe(document.querySelector('select'));
+  });
+
+  it('tries the whole label first, so labels may contain commas', () => {
+    mount('<input aria-label="Phone, mobile" />');
+    expect(byLabel('Phone, mobile')).toBe(document.querySelector('input'));
+  });
+
+  it('falls back through a comma list when the whole text matches nothing', () => {
+    mount('<input aria-label="Telephone" />');
+    expect(byLabel('Mobile number, Telephone')).toBe(document.querySelector('input'));
+  });
+
+  it('returns null when no control has that label', () => {
+    mount('<input aria-label="Email" />');
+    expect(byLabel('Phone')).toBeNull();
+  });
+});
+
+describe('applySteps — targeting by label', () => {
+  it('fills a text field by its label', async () => {
+    mount('<label for="ph-0.123456789">Mobile number</label><input id="ph-0.123456789" />');
+    const summary = await applySteps(
+      [{ id: 's1', type: 'text', target: { by: 'label', value: 'mobile number' }, value: '0400 000 000' }],
+      'continue',
+    );
+    expect(summary.succeeded).toBe(1);
+    expect((document.querySelector('input') as HTMLInputElement).value).toBe('0400 000 000');
+  });
+
+  it('selects a radio in a group targeted by its fieldset legend', async () => {
+    mount(`
+      <fieldset>
+        <legend>Are you an Australian resident?</legend>
+        <input type="radio" name="r-0.991827364" value="yes" />
+        <input type="radio" name="r-0.991827364" value="no" />
+      </fieldset>`);
+    const summary = await applySteps(
+      [{ id: 's1', type: 'radio', target: { by: 'label', value: 'Are you an Australian resident?' }, value: 'no' }],
+      'continue',
+    );
+    expect(summary.succeeded).toBe(1);
+    const radios = document.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+    expect(radios[0]!.checked).toBe(false);
+    expect(radios[1]!.checked).toBe(true);
+  });
+});

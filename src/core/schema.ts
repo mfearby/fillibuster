@@ -70,7 +70,12 @@ export interface BaseStep {
  * (Req 2.3): prefer `id`, then `name`, then a CSS path.
  */
 export interface Selector {
-  by: "id" | "name" | "css";
+  /**
+   * `label` matches a control by its human-readable label (aria-label,
+   * aria-labelledby, `<label>`, or a fieldset legend), case-insensitively —
+   * useful when ids/names are auto-generated.
+   */
+  by: "id" | "name" | "label" | "css";
   value: string;
 }
 

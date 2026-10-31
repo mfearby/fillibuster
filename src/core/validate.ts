@@ -72,7 +72,7 @@ const STEP_TYPES = [
   'autocomplete',
   'button',
 ] as const;
-const SELECTOR_BY = ['id', 'name', 'css'] as const;
+const SELECTOR_BY = ['id', 'name', 'label', 'css'] as const;
 const RULE_KINDS = ['exact', 'prefix', 'glob'] as const;
 const ERROR_STRATEGIES = ['stop', 'continue'] as const;
 

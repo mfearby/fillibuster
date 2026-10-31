@@ -17,7 +17,12 @@ import type {
   SelectStep,
   TextStep,
 } from '../core/schema';
-import { type CaptureCandidate, capturePage, deriveSelector } from './capture';
+import {
+  type CaptureCandidate,
+  capturePage,
+  deriveSelector,
+  looksGenerated,
+} from './capture';
 
 /** Replace the document body with `html` and return it. */
 function mount(html: string): HTMLElement {
@@ -282,5 +287,88 @@ describe('capturePage — step metadata', () => {
     `);
     const step = only(capturePage(document)).step;
     expect(step.label).toBe('Full name');
+  });
+});
+
+describe('looksGenerated', () => {
+  it.each([
+    'phone-number-input-0.8075095940726259',
+    ':r16:',
+    '«r1»',
+    'field-3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+    'input-a3f9c2e1b4',
+    'mui-12',
+    'react-select-3-input',
+    'headlessui-listbox-button-5',
+    'ts-1730412345678',
+  ])('flags %s as generated', (value) => {
+    expect(looksGenerated(value)).toBe(true);
+  });
+
+  it.each(['email', 'first-name', 'user[email]', 'address-line-2', 'number', 'dob2024', 'step-10'])(
+    'treats %s as stable',
+    (value) => {
+      expect(looksGenerated(value)).toBe(false);
+    },
+  );
+});
+
+describe('deriveSelector — generated ids', () => {
+  it('skips a random id and targets the label instead, with a note', () => {
+    mount(
+      '<input id="phone-number-input-0.8075095940726259" name="number" aria-label="Mobile number" />',
+    );
+    const el = document.querySelector('input')!;
+    const { selector, fragile, note } = deriveSelector(el, document);
+    expect(selector).toEqual({ by: 'label', value: 'Mobile number' });
+    expect(fragile).toBe(false);
+    expect(note).toMatch(/looks auto-generated, so it is targeted by its label instead/);
+  });
+
+  it('uses the name when a random id has no usable label', () => {
+    mount('<input id=":r16:" name="number" />');
+    const el = document.querySelector('input')!;
+    const { selector, note } = deriveSelector(el, document);
+    expect(selector).toEqual({ by: 'name', value: 'number' });
+    expect(note).toMatch(/by its name instead/);
+  });
+
+  it('does not use a label shared by two fields', () => {
+    mount(`
+      <input id=":r1:" aria-label="Phone" data-testid="home" />
+      <input id=":r2:" aria-label="Phone" data-testid="work" />`);
+    const el = document.querySelectorAll('input')[1]!;
+    const { selector } = deriveSelector(el, document);
+    expect(selector).toEqual({ by: 'css', value: 'input[data-testid="work"]' });
+  });
+
+  it('skips a generated name too', () => {
+    mount('<input name="field-0.55512345678" aria-label="Postcode" />');
+    const { selector, note } = deriveSelector(document.querySelector('input')!, document);
+    expect(selector).toEqual({ by: 'label', value: 'Postcode' });
+    expect(note).toMatch(/Its name .* looks auto-generated/);
+  });
+
+  it('keeps a stable id first, with no note', () => {
+    mount('<input id="email" aria-label="Email address" />');
+    const { selector, note } = deriveSelector(document.querySelector('input')!, document);
+    expect(selector).toEqual({ by: 'id', value: 'email' });
+    expect(note).toBeUndefined();
+  });
+
+  it('does not anchor a positional path at a generated parent id', () => {
+    mount('<div id="wrap-0.123456789"><input /><input /></div>');
+    const el = document.querySelectorAll('input')[1]!;
+    const { selector, fragile } = deriveSelector(el, document);
+    expect(fragile).toBe(true);
+    expect(selector.value).not.toContain('wrap-0.123456789');
+    expect(document.querySelector(selector.value)).toBe(el);
+  });
+
+  it('passes the note through to the capture candidate', () => {
+    mount('<input id="x-0.8075095940726259" aria-label="Mobile number" />');
+    const candidate = only(capturePage(document));
+    expect(candidate.step.target).toEqual({ by: 'label', value: 'Mobile number' });
+    expect(candidate.note).toMatch(/auto-generated/);
   });
 });
