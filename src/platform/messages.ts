@@ -44,6 +44,8 @@ export const MessageType = {
   DeleteConfig: 'deleteConfig',
   ExportConfig: 'exportConfig',
   ImportConfig: 'importConfig',
+  BackupConfigs: 'backupConfigs',
+  ImportConfigs: 'importConfigs',
   EnableEncryption: 'enableEncryption',
   DisableEncryption: 'disableEncryption',
   EncryptionStatus: 'encryptionStatus',
@@ -183,6 +185,43 @@ export interface ImportConfigMessage {
 }
 
 /**
+ * Export EVERY config as one backup file. Encrypted configs are decrypted first,
+ * so the session must be unlocked when any exist (otherwise `locked`).
+ */
+export interface BackupConfigsMessage {
+  type: typeof MessageType.BackupConfigs;
+}
+
+/** The backup file contents plus how many configs it holds. */
+export interface BackupResult {
+  json: string;
+  count: number;
+}
+
+/**
+ * Import a backup file or a single exported config, adding every config inside
+ * as new. Names and ids that collide with existing configs are changed, so
+ * nothing already stored is overwritten.
+ */
+export interface ImportConfigsMessage {
+  type: typeof MessageType.ImportConfigs;
+  text: string;
+}
+
+/** One config added by {@link ImportConfigsMessage}. */
+export interface ImportedConfigSummary {
+  id: string;
+  name: string;
+  /** The name it had in the file (differs from `name` when renamed). */
+  originalName: string;
+  renamed: boolean;
+}
+
+export interface ImportConfigsResult {
+  imported: ImportedConfigSummary[];
+}
+
+/**
  * Enable encryption by setting the master passphrase: generate a salt, derive a
  * key, make a verifier, persist the settings, and cache the key in-session
  * (Req 8.4, 8.7).
@@ -254,6 +293,8 @@ export type UiRequest =
   | DeleteConfigMessage
   | ExportConfigMessage
   | ImportConfigMessage
+  | BackupConfigsMessage
+  | ImportConfigsMessage
   | EnableEncryptionMessage
   | DisableEncryptionMessage
   | EncryptionStatusMessage
@@ -272,6 +313,8 @@ const UI_REQUEST_TYPES: ReadonlySet<string> = new Set([
   MessageType.DeleteConfig,
   MessageType.ExportConfig,
   MessageType.ImportConfig,
+  MessageType.BackupConfigs,
+  MessageType.ImportConfigs,
   MessageType.EnableEncryption,
   MessageType.DisableEncryption,
   MessageType.EncryptionStatus,

@@ -24,11 +24,19 @@
 import { decryptSteps, deriveKey, encryptSteps, generateSalt, makeVerifier, checkVerifier, DEFAULT_ITERATIONS } from '../core/crypto';
 import { matchingConfigIds } from '../core/match';
 import type { FillConfig, MatchRule, StoredConfig } from '../core/schema';
-import { exportConfigJson, importEnvelope } from '../core/share';
+import {
+  exportBackupJson,
+  exportConfigJson,
+  importConfigs,
+  importEnvelope,
+} from '../core/share';
 import browser from '../platform/browser';
 import {
   MessageType,
+  type BackupResult,
   type ConfigSummary,
+  type ImportConfigsResult,
+  type ImportedConfigSummary,
   type UiRequest,
 } from '../platform/messages';
 import {
@@ -409,12 +417,84 @@ async function handleImportConfig(
   const result = importEnvelope(text, names);
   if (!result.ok) return failure('error', result.error);
 
+  // The store is keyed by id: never let an import replace an existing config.
+  const ids = new Set(existing.map((c) => c.id));
+  const config = result.value.config;
+  const id = ids.has(config.id) ? crypto.randomUUID() : config.id;
+
   // Imported configs are stored as plaintext; marking one encrypted is a
   // separate, deliberate step the user takes in the editor (Req 8.6).
-  const imported: FillConfig = { ...result.value.config, encrypted: false };
-  const stored: StoredConfig = { ...imported, encrypted: false };
+  const stored: StoredConfig = { ...config, id, encrypted: false };
   await putConfig(stored);
   return success(stored);
+}
+
+/**
+ * Back up every config into one plaintext file. Encrypted configs are decrypted
+ * first; if the session is locked the whole backup fails with `locked` rather
+ * than silently leaving those configs out.
+ */
+async function handleBackupConfigs(): Promise<OrchestratorResult<BackupResult>> {
+  const stored = await listConfigs();
+  const plain: FillConfig[] = [];
+
+  for (const config of stored) {
+    const stepsResult = await resolveSteps(config);
+    if (!stepsResult.ok) {
+      if (stepsResult.code === 'locked') {
+        return failure(
+          'locked',
+          'Some configs are encrypted. Unlock them in Encryption settings, then back up again.',
+        );
+      }
+      return stepsResult;
+    }
+    plain.push({
+      id: config.id,
+      name: config.name,
+      match: config.match,
+      steps: stepsResult.value,
+      errorStrategy: config.errorStrategy,
+      encrypted: false,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    });
+  }
+
+  plain.sort((a, b) => a.name.localeCompare(b.name));
+  return success({ json: exportBackupJson(plain), count: plain.length });
+}
+
+/**
+ * Import a backup file or a single exported config, adding every config as new
+ * (Req 7.3, 7.5). The input is fully validated first, so a bad file stores
+ * nothing (Req 7.4). Colliding names are suffixed and colliding ids replaced, so
+ * no existing config is ever overwritten.
+ */
+async function handleImportConfigs(
+  text: string,
+): Promise<OrchestratorResult<ImportConfigsResult>> {
+  const existing = await listConfigs();
+  const result = importConfigs(
+    text,
+    { names: existing.map((c) => c.name), ids: existing.map((c) => c.id) },
+    () => crypto.randomUUID(),
+  );
+  if (!result.ok) return failure('error', result.error);
+
+  const imported: ImportedConfigSummary[] = [];
+  for (const item of result.value) {
+    // Stored as plaintext, like single import (Req 8.6).
+    const stored: StoredConfig = { ...item.config, encrypted: false };
+    await putConfig(stored);
+    imported.push({
+      id: stored.id,
+      name: stored.name,
+      originalName: item.originalName,
+      renamed: item.renamed,
+    });
+  }
+  return success({ imported });
 }
 
 /**
@@ -542,6 +622,10 @@ export async function handleUiMessage(
         return await handleExportConfig(message.configId);
       case MessageType.ImportConfig:
         return await handleImportConfig(message.text);
+      case MessageType.BackupConfigs:
+        return await handleBackupConfigs();
+      case MessageType.ImportConfigs:
+        return await handleImportConfigs(message.text);
       case MessageType.EnableEncryption:
         return await handleEnableEncryption(message.passphrase);
       case MessageType.DisableEncryption:

@@ -32,8 +32,14 @@ export interface ConfigListProps {
   onDelete: (configId: string) => void;
   /** Export a config as a shareable JSON envelope (Req 7.1, 7.2). */
   onExport: (config: ConfigSummary) => void;
-  /** Open the import-by-paste dialog (Req 7.3). */
+  /** Open the import dialog (file, drag-and-drop, or paste) (Req 7.3). */
   onImport: () => void;
+  /** Download every config as one backup file. */
+  onBackup: () => void;
+  /** Success message (e.g. after a backup), shown under the toolbar. */
+  notice?: string | null;
+  /** Error message, shown under the toolbar where it can't be missed. */
+  error?: string | null;
   /** Open the encryption settings view (Req 8.4, 8.8, 8.10). */
   onEncryption: () => void;
 }
@@ -47,7 +53,10 @@ export function ConfigList(props: ConfigListProps) {
     onDelete,
     onExport,
     onImport,
+    onBackup,
     onEncryption,
+    notice,
+    error,
   } = props;
 
   // Which row (if any) is showing its inline delete confirmation (Req 6.6).
@@ -68,12 +77,30 @@ export function ConfigList(props: ConfigListProps) {
           New config
         </button>
         <button disabled={busy} onClick={onImport}>
-          Import config
+          Import
+        </button>
+        <button
+          disabled={busy || configs.length === 0}
+          title="Download every config as one file you can import later"
+          onClick={onBackup}
+        >
+          Back up all
         </button>
         <button disabled={busy} onClick={onEncryption}>
           Encryption
         </button>
       </div>
+
+      {notice ? (
+        <p class="ok list-message" role="status">
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <p class="error list-message" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {configs.length === 0 ? (
         <div class="empty">

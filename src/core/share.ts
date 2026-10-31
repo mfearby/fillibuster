@@ -24,8 +24,8 @@
 
 import type { FillConfig } from './schema';
 import { SCHEMA_VERSION } from './schema';
-import type { ExportEnvelope, Result } from './validate';
-import { validateEnvelope } from './validate';
+import type { BackupEnvelope, ExportEnvelope, Result } from './validate';
+import { validateBackup, validateEnvelope } from './validate';
 
 /**
  * Wrap a config in the versioned export envelope (Req 7.1, 7.6). Steps are
@@ -116,4 +116,115 @@ export function importEnvelope(
       renamed,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Whole-store backup / restore
+// ---------------------------------------------------------------------------
+
+/**
+ * Wrap every config in one {@link BackupEnvelope}. Like single export, steps are
+ * emitted as-is, so callers must decrypt encrypted configs first.
+ */
+export function exportBackup(
+  configs: FillConfig[],
+  exportedAt: number = Date.now(),
+): BackupEnvelope {
+  return {
+    app: 'fillibuster',
+    kind: 'backup',
+    schemaVersion: SCHEMA_VERSION,
+    exportedAt,
+    configs,
+  };
+}
+
+/** Pretty-printed JSON for a backup file. */
+export function exportBackupJson(
+  configs: FillConfig[],
+  exportedAt?: number,
+  space = 2,
+): string {
+  return JSON.stringify(exportBackup(configs, exportedAt), null, space);
+}
+
+/** One config ready to be stored by {@link importConfigs}. */
+export interface ImportedItem {
+  /** The config to store: unique name and unique id against the store. */
+  config: FillConfig;
+  /** The name it had in the file, before any collision rename. */
+  originalName: string;
+  /** True when the name collided and was renamed to keep both (Req 7.5). */
+  renamed: boolean;
+}
+
+/** What already exists in the store, so imports never overwrite it. */
+export interface ExistingConfigs {
+  names: Iterable<string>;
+  ids: Iterable<string>;
+}
+
+/**
+ * Parse an import file or pasted text — either a whole-store backup or a single
+ * exported config — and return every config to add.
+ *
+ * Nothing already stored is ever overwritten:
+ *  - a colliding NAME gets a " (n)" suffix, as single import always did (Req 7.5);
+ *  - a colliding ID gets a fresh one from `newId`. The store is keyed by id, so
+ *    without this, re-importing your own export would silently replace the
+ *    original config.
+ *
+ * Collisions are also checked across the configs in the same file. The whole
+ * input is validated up front; one bad config fails the lot (Req 7.4).
+ */
+export function importConfigs(
+  text: string,
+  existing: ExistingConfigs,
+  newId: () => string,
+): Result<ImportedItem[]> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'not valid JSON' };
+  }
+
+  // A backup is marked `kind: "backup"`; anything else is treated as a single
+  // exported config, so its validation errors stay the familiar ones.
+  const isBackup =
+    typeof parsed === 'object' &&
+    parsed !== null &&
+    (parsed as { kind?: unknown }).kind === 'backup';
+
+  let configs: FillConfig[];
+  if (isBackup) {
+    const backup = validateBackup(parsed);
+    if (!backup.ok) return backup;
+    configs = backup.value.configs;
+  } else {
+    const single = validateEnvelope(parsed);
+    if (!single.ok) return single;
+    configs = [single.value.config];
+  }
+
+  const takenNames = new Set(existing.names);
+  const takenIds = new Set(existing.ids);
+  const items: ImportedItem[] = [];
+
+  for (const config of configs) {
+    const name = suggestName(config.name, takenNames);
+    takenNames.add(name);
+
+    let id = config.id;
+    if (takenIds.has(id)) id = newId();
+    takenIds.add(id);
+
+    items.push({
+      config: { ...config, id, name },
+      originalName: config.name,
+      renamed: name !== config.name,
+    });
+  }
+
+  return { ok: true, value: items };
 }

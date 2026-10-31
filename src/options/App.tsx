@@ -25,9 +25,14 @@
 import { useEffect, useState } from 'preact/hooks';
 
 import type { FillConfig } from '../core/schema';
-import { MessageType, type ConfigSummary } from '../platform/messages';
+import {
+  MessageType,
+  type BackupResult,
+  type ConfigSummary,
+} from '../platform/messages';
 import { sendUi } from '../platform/rpc';
 import { takePendingEdit } from '../platform/store';
+import { backupFilename, downloadText } from './files';
 import { ConfigEditor } from './ConfigEditor';
 import { ConfigList } from './ConfigList';
 import { EncryptionSettings } from './EncryptionSettings';
@@ -67,6 +72,31 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Confirmation shown after a backup downloads.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  /**
+   * Download every config as one backup file. Encrypted configs are decrypted
+   * by the background first, so a locked session reports an error instead.
+   */
+  async function backupAll() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const result = await sendUi<BackupResult>({ type: MessageType.BackupConfigs });
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    const filename = backupFilename();
+    downloadText(filename, result.value.json);
+    const n = result.value.count;
+    setNotice(
+      `Downloaded ${n} config${n === 1 ? '' : 's'} as ${filename}. ` +
+        'The file holds the values in plain text, so keep it somewhere safe.',
+    );
+  }
 
   /** Fetch the full config list (Req 6.1). Shared by mount + post-mutation refresh. */
   async function refresh() {
@@ -208,10 +238,18 @@ export function App() {
           onDelete={deleteConfig}
           onExport={openExport}
           onImport={openImport}
+          onBackup={() => void backupAll()}
           onEncryption={openEncryption}
+          notice={notice}
+          error={error}
         />
       )}
-      {error ? <p class="error">{error}</p> : null}
+      {/* While the list is still loading, a failed load has nowhere else to show. */}
+      {loading && error ? (
+        <p class="error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </main>
   );
 }

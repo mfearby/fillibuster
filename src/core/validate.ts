@@ -41,6 +41,20 @@ export interface ExportEnvelope {
   config: FillConfig;
 }
 
+/**
+ * A whole-store backup: every config in one file. Shares the `app` +
+ * `schemaVersion` gate with {@link ExportEnvelope}; `kind: "backup"` tells the
+ * two formats apart.
+ */
+export interface BackupEnvelope {
+  app: 'fillibuster';
+  kind: 'backup';
+  schemaVersion: typeof SCHEMA_VERSION;
+  /** When the backup was made (ms since epoch). Informational only. */
+  exportedAt?: number;
+  configs: FillConfig[];
+}
+
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const err = (error: string): Result<never> => ({ ok: false, error });
 
@@ -273,4 +287,53 @@ export function validateEnvelope(v: unknown): Result<ExportEnvelope> {
   if (!config.ok) return config;
 
   return ok({ app: 'fillibuster', schemaVersion: SCHEMA_VERSION, config: config.value });
+}
+
+/**
+ * Validate an unknown value as a {@link BackupEnvelope}. Applies the same app
+ * marker and version gate as {@link validateEnvelope}, then validates EVERY
+ * config — the first invalid one fails the whole backup, so a partly-bad file
+ * never half-imports (Req 7.4). An empty backup is rejected: there is nothing
+ * to import and it is more likely the wrong file.
+ */
+export function validateBackup(v: unknown): Result<BackupEnvelope> {
+  if (!isRecord(v)) return err('backup must be an object');
+
+  if (v['app'] !== 'fillibuster') {
+    return err('backup.app must be "fillibuster"');
+  }
+  if (v['kind'] !== 'backup') {
+    return err('backup.kind must be "backup"');
+  }
+  if (v['schemaVersion'] !== SCHEMA_VERSION) {
+    return err(
+      `unsupported schemaVersion ${JSON.stringify(v['schemaVersion'])}; expected ${SCHEMA_VERSION}`,
+    );
+  }
+  const exportedAt = v['exportedAt'];
+  if (
+    exportedAt !== undefined &&
+    (typeof exportedAt !== 'number' || !Number.isFinite(exportedAt))
+  ) {
+    return err('backup.exportedAt must be a finite number when present');
+  }
+
+  if (!Array.isArray(v['configs'])) return err('backup.configs must be an array');
+  if (v['configs'].length === 0) return err('backup contains no configs');
+
+  const configs: FillConfig[] = [];
+  for (let i = 0; i < v['configs'].length; i++) {
+    const c = validateConfig(v['configs'][i], `backup.configs[${i}]`);
+    if (!c.ok) return c;
+    configs.push(c.value);
+  }
+
+  const backup: BackupEnvelope = {
+    app: 'fillibuster',
+    kind: 'backup',
+    schemaVersion: SCHEMA_VERSION,
+    configs,
+  };
+  if (typeof exportedAt === 'number') backup.exportedAt = exportedAt;
+  return ok(backup);
 }

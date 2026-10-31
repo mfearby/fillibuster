@@ -494,4 +494,117 @@ describe('import / export (Req 7.1, 7.3)', () => {
     const list = await handleUiMessage({ type: MessageType.ListConfigs });
     expect(list).toMatchObject({ ok: true, value: [] });
   });
+
+  it('re-importing your own export keeps the original instead of overwriting it', async () => {
+    await handleUiMessage({ type: MessageType.SaveConfig, config: plainConfig() });
+    const exported = await handleUiMessage({ type: MessageType.ExportConfig, configId: 'cfg-1' });
+    if (!exported.ok) throw new Error('export failed');
+
+    const res = await handleUiMessage({
+      type: MessageType.ImportConfig,
+      text: exported.value as string,
+    });
+    expect(res.ok).toBe(true);
+
+    const all = await store.listConfigs();
+    expect(all).toHaveLength(2);
+    expect(all.map((c) => c.name).sort()).toEqual(['Example', 'Example (2)']);
+    expect(new Set(all.map((c) => c.id)).size).toBe(2);
+  });
+});
+
+describe('backup and import of all configs', () => {
+  it('backs up every config, decrypting encrypted ones', async () => {
+    await handleUiMessage({ type: MessageType.EnableEncryption, passphrase: 'pw' });
+    await handleUiMessage({ type: MessageType.SaveConfig, config: plainConfig({ id: 'p', name: 'Plain' }) });
+    await handleUiMessage({
+      type: MessageType.SaveConfig,
+      config: plainConfig({ id: 'e', name: 'Secret', encrypted: true }),
+    });
+
+    const res = await handleUiMessage({ type: MessageType.BackupConfigs });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { json, count } = res.value as { json: string; count: number };
+    expect(count).toBe(2);
+
+    const backup = JSON.parse(json);
+    expect(backup).toMatchObject({ app: 'fillibuster', kind: 'backup', schemaVersion: 1 });
+    expect(backup.configs.map((c: FillConfig) => c.name)).toEqual(['Plain', 'Secret']);
+    // The encrypted config's steps are exported in plain text.
+    expect(backup.configs[1].encrypted).toBe(false);
+    expect(backup.configs[1].steps).toEqual(plainConfig().steps);
+  });
+
+  it('refuses to back up while encrypted configs are locked', async () => {
+    await handleUiMessage({ type: MessageType.EnableEncryption, passphrase: 'pw' });
+    await handleUiMessage({
+      type: MessageType.SaveConfig,
+      config: plainConfig({ encrypted: true }),
+    });
+    await handleUiMessage({ type: MessageType.Lock });
+
+    const res = await handleUiMessage({ type: MessageType.BackupConfigs });
+    expect(res).toMatchObject({ ok: false, code: 'locked' });
+  });
+
+  it('round-trips a backup into a store that already holds the same configs', async () => {
+    await handleUiMessage({ type: MessageType.SaveConfig, config: plainConfig({ id: 'a', name: 'Alpha' }) });
+    await handleUiMessage({ type: MessageType.SaveConfig, config: plainConfig({ id: 'b', name: 'Beta' }) });
+    const backup = await handleUiMessage({ type: MessageType.BackupConfigs });
+    if (!backup.ok) throw new Error('backup failed');
+
+    const res = await handleUiMessage({
+      type: MessageType.ImportConfigs,
+      text: (backup.value as { json: string }).json,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const { imported } = res.value as { imported: Array<{ name: string; renamed: boolean }> };
+    expect(imported.map((i) => i.name)).toEqual(['Alpha (2)', 'Beta (2)']);
+    expect(imported.every((i) => i.renamed)).toBe(true);
+
+    // The originals are untouched and the copies sit alongside them.
+    const all = await store.listConfigs();
+    expect(all).toHaveLength(4);
+    expect(new Set(all.map((c) => c.id)).size).toBe(4);
+    expect(all.map((c) => c.name).sort()).toEqual(['Alpha', 'Alpha (2)', 'Beta', 'Beta (2)']);
+  });
+
+  it('restores a backup into an empty store unchanged', async () => {
+    await handleUiMessage({ type: MessageType.SaveConfig, config: plainConfig({ id: 'a', name: 'Alpha' }) });
+    const backup = await handleUiMessage({ type: MessageType.BackupConfigs });
+    if (!backup.ok) throw new Error('backup failed');
+    store.reset();
+
+    await handleUiMessage({
+      type: MessageType.ImportConfigs,
+      text: (backup.value as { json: string }).json,
+    });
+    const all = await store.listConfigs();
+    expect(all.map((c) => [c.id, c.name])).toEqual([['a', 'Alpha']]);
+  });
+
+  it('stores nothing when any config in the file is invalid (Req 7.4)', async () => {
+    const bad = JSON.stringify({
+      app: 'fillibuster',
+      kind: 'backup',
+      schemaVersion: 1,
+      configs: [plainConfig({ id: 'ok' }), { ...plainConfig({ id: 'bad' }), name: '' }],
+    });
+    const res = await handleUiMessage({ type: MessageType.ImportConfigs, text: bad });
+    expect(res).toMatchObject({ ok: false, code: 'error' });
+    expect(await store.listConfigs()).toEqual([]);
+  });
+
+  it('also accepts a single exported config', async () => {
+    const res = await handleUiMessage({
+      type: MessageType.ImportConfigs,
+      text: exportConfigJson(plainConfig({ id: 'one', name: 'Solo' })),
+    });
+    expect(res).toMatchObject({
+      ok: true,
+      value: { imported: [{ id: 'one', name: 'Solo', renamed: false }] },
+    });
+  });
 });

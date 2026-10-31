@@ -176,6 +176,12 @@ button:disabled {
   margin-bottom: 20px;
 }
 
+/* Status / error line between the toolbar and the config list, so it's
+   visible without scrolling past a long list. */
+.list-message {
+  margin: -8px 0 16px;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -549,6 +555,36 @@ input.grow {
 
 .warn-box p {
   margin: 0 0 12px;
+}
+
+/* File drop target on the Import screen. Highlights while a file is dragged
+   over it; the Browse… button inside gives keyboard users the same path. */
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  margin-bottom: 20px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  text-align: center;
+  color: var(--muted);
+}
+
+.drop-zone p {
+  margin: 0;
+}
+
+.drop-zone.dragging {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.import-results {
+  margin: 0 0 16px;
+  padding-left: 20px;
 }
 
 .export-envelope,

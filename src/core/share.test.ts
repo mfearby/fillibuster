@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { SCHEMA_VERSION } from './schema';
 import type { FillConfig } from './schema';
-import { exportConfig, exportConfigJson, importEnvelope, suggestName } from './share';
+import {
+  exportBackup,
+  exportBackupJson,
+  exportConfig,
+  exportConfigJson,
+  importConfigs,
+  importEnvelope,
+  suggestName,
+} from './share';
 
 /** A minimal-but-complete valid config, fresh per call so tests can mutate. */
 function validConfig(): FillConfig {
@@ -127,5 +135,80 @@ describe('importEnvelope', () => {
     const res = importEnvelope(exportConfigJson(validConfig()));
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.value.renamed).toBe(false);
+  });
+});
+
+describe('exportBackup / importConfigs', () => {
+  const none = { names: [], ids: [] };
+  let counter = 0;
+  const newId = () => `new-${++counter}`;
+
+  it('wraps every config in a versioned backup envelope', () => {
+    const backup = exportBackup([validConfig()], 123);
+    expect(backup).toEqual({
+      app: 'fillibuster',
+      kind: 'backup',
+      schemaVersion: SCHEMA_VERSION,
+      exportedAt: 123,
+      configs: [validConfig()],
+    });
+  });
+
+  it('round-trips a backup into an empty store unchanged', () => {
+    const json = exportBackupJson([validConfig(), { ...validConfig(), id: 'cfg-2', name: 'Other' }]);
+    const res = importConfigs(json, none, newId);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.map((i) => i.config.id)).toEqual(['cfg-1', 'cfg-2']);
+      expect(res.value.every((i) => !i.renamed)).toBe(true);
+    }
+  });
+
+  it('renames and re-ids configs that collide with the store', () => {
+    const json = exportBackupJson([validConfig()]);
+    const res = importConfigs(json, { names: ['DMV apply'], ids: ['cfg-1'] }, () => 'fresh');
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value[0]).toMatchObject({
+        config: { id: 'fresh', name: 'DMV apply (2)' },
+        originalName: 'DMV apply',
+        renamed: true,
+      });
+    }
+  });
+
+  it('resolves collisions between configs inside the same file', () => {
+    const json = exportBackupJson([validConfig(), validConfig()]);
+    const res = importConfigs(json, none, () => 'dupe-id');
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.map((i) => i.config.name)).toEqual(['DMV apply', 'DMV apply (2)']);
+      expect(res.value.map((i) => i.config.id)).toEqual(['cfg-1', 'dupe-id']);
+    }
+  });
+
+  it('accepts a single exported config too', () => {
+    const res = importConfigs(exportConfigJson(validConfig()), none, newId);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.value).toHaveLength(1);
+  });
+
+  it('rejects invalid JSON, an empty backup, and a backup with a bad config', () => {
+    expect(importConfigs('nope', none, newId)).toMatchObject({ ok: false, error: 'not valid JSON' });
+
+    const empty = JSON.stringify({ ...exportBackup([]), configs: [] });
+    expect(importConfigs(empty, none, newId)).toMatchObject({ ok: false });
+
+    const bad = JSON.stringify(exportBackup([validConfig(), { ...validConfig(), name: '' }]));
+    const res = importConfigs(bad, none, newId);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/backup\.configs\[1\]\.name/);
+  });
+
+  it('rejects a backup from an unsupported schema version', () => {
+    const future = JSON.stringify({ ...exportBackup([validConfig()]), schemaVersion: 99 });
+    const res = importConfigs(future, none, newId);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/unsupported schemaVersion 99/);
   });
 });

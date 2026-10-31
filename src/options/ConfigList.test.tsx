@@ -28,12 +28,30 @@ function renderList(overrides: Partial<Parameters<typeof ConfigList>[0]> = {}) {
     onDelete: vi.fn(),
     onExport: vi.fn(),
     onImport: vi.fn(),
+    onBackup: vi.fn(),
     onEncryption: vi.fn(),
     ...overrides,
   };
   render(<ConfigList {...props} />);
   return props;
 }
+
+describe('ConfigList messages', () => {
+  it('shows the notice and error between the toolbar and the config list', () => {
+    renderList({ notice: 'Downloaded 2 configs.', error: 'Something failed.' });
+
+    const notice = screen.getByText('Downloaded 2 configs.');
+    const error = screen.getByText('Something failed.');
+    const list = document.querySelector('.config-list')!;
+    const toolbar = document.querySelector('.toolbar')!;
+
+    for (const msg of [notice, error]) {
+      // Comes after the toolbar and before the list in document order.
+      expect(toolbar.compareDocumentPosition(msg) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(msg.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+});
 
 describe('ConfigList encryption markers', () => {
   it('shows a lock on an encrypted config', () => {
