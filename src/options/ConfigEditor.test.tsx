@@ -89,8 +89,8 @@ describe('ConfigEditor (task 12.2)', () => {
     render(<ConfigEditor draft={draft()} onSaved={noop} onBack={noop} />);
     await screen.findByLabelText('Name');
 
-    fireEvent.click(screen.getByText('Add rule'));
-    fireEvent.click(screen.getByText('Add rule'));
+    fireEvent.click(screen.getByLabelText('Add rule'));
+    fireEvent.click(screen.getByLabelText('Add rule'));
 
     // Edit the first rule's kind + pattern.
     fireEvent.change(screen.getByLabelText('Rule 1 kind'), {

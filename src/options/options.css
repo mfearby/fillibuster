@@ -264,10 +264,35 @@ h3 {
   gap: 10px;
 }
 
-.rule-row {
-  display: flex;
+/* Rules share one three-column grid (kind | pattern | actions) so the pattern
+   inputs line up across rows even though rows have different buttons. Each
+   <li> uses `display: contents` so its children become the grid cells. */
+.rule-list {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 8px;
+  gap: 10px 8px;
+}
+
+.rule-row {
+  display: contents;
+}
+
+/* Compact square-ish button for a single glyph (✕ / +). The glyph is a text
+   character from the system font, so no icon font or image is needed. */
+.icon-button {
+  min-width: 36px;
+  font-size: 16px;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 6px;
+  /* Left-aligned so Remove starts at the same x on every row; Add rule (last
+     row only) follows it. */
+  justify-content: flex-start;
 }
 
 .step-row {
@@ -356,6 +381,25 @@ h3 {
    doesn't stretch across the row. */
 .timeout-input {
   width: 7ch;
+}
+
+/* Config-level Name + Error strategy share one row, 50% each, with the caption
+   to the left of its control. `flex: 1 1 0` gives both halves equal width, and
+   each control fills what remains after its caption. */
+.config-meta-row {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.config-meta-row > .field-inline-left {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.config-meta-row > .field-inline-left > input,
+.config-meta-row > .field-inline-left > select {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Align a field's hint under its INPUT rather than its caption. An invisible

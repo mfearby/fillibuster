@@ -249,35 +249,37 @@ export function ConfigEditor(props: ConfigEditorProps) {
     <section>
       <h2>Edit config</h2>
 
-      <div class="field">
-        <label for="config-name">Name</label>
-        <input
-          id="config-name"
-          type="text"
-          value={config.name}
-          disabled={saving}
-          onInput={(e) =>
-            patch({ name: (e.target as HTMLInputElement).value })
-          }
-        />
-      </div>
+      <div class="field-row config-meta-row">
+        <label class="field-inline-left" for="config-name">
+          <span>Name</span>
+          <input
+            id="config-name"
+            type="text"
+            value={config.name}
+            disabled={saving}
+            onInput={(e) =>
+              patch({ name: (e.target as HTMLInputElement).value })
+            }
+          />
+        </label>
 
-      <div class="field">
-        <label for="config-error-strategy">Error strategy</label>
-        <select
-          id="config-error-strategy"
-          value={config.errorStrategy}
-          disabled={saving}
-          onChange={(e) =>
-            patch({
-              errorStrategy: (e.target as HTMLSelectElement)
-                .value as FillConfig['errorStrategy'],
-            })
-          }
-        >
-          <option value="stop">Stop on first failure</option>
-          <option value="continue">Continue past failures</option>
-        </select>
+        <label class="field-inline-left" for="config-error-strategy">
+          <span>Error strategy</span>
+          <select
+            id="config-error-strategy"
+            value={config.errorStrategy}
+            disabled={saving}
+            onChange={(e) =>
+              patch({
+                errorStrategy: (e.target as HTMLSelectElement)
+                  .value as FillConfig['errorStrategy'],
+              })
+            }
+          >
+            <option value="stop">Stop on first failure</option>
+            <option value="continue">Continue past failures</option>
+          </select>
+        </label>
       </div>
 
       {/* Mark a config as encrypted (Req 8.6). Only actionable once encryption

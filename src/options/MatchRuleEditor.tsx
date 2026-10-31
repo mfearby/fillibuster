@@ -37,13 +37,25 @@ export function MatchRuleEditor(props: MatchRuleEditorProps) {
     onChange(rules.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   }
 
+  // Button placement per row: the first row never gets Remove (so a lone rule
+  // can't be removed); later rows do. Only the last row gets Add rule. With no
+  // rules at all, Add rule lives in the header so there is still a way to start.
   return (
     <div class="subsection">
       <div class="subsection-head">
         <h3>Match rules</h3>
-        <button type="button" disabled={disabled} onClick={addRule}>
-          Add rule
-        </button>
+        {rules.length === 0 ? (
+          <button
+            type="button"
+            class="icon-button"
+            disabled={disabled}
+            aria-label="Add rule"
+            title="Add rule"
+            onClick={addRule}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+        ) : null}
       </div>
 
       {rules.length === 0 ? (
@@ -93,15 +105,32 @@ export function MatchRuleEditor(props: MatchRuleEditorProps) {
                 }
               />
 
-              <button
-                type="button"
-                class="danger"
-                disabled={disabled}
-                aria-label={`Remove rule ${index + 1}`}
-                onClick={() => removeRule(index)}
-              >
-                Remove
-              </button>
+              <div class="rule-actions">
+                {index > 0 ? (
+                  <button
+                    type="button"
+                    class="icon-button danger"
+                    disabled={disabled}
+                    aria-label={`Remove rule ${index + 1}`}
+                    title="Remove rule"
+                    onClick={() => removeRule(index)}
+                  >
+                    <span aria-hidden="true">✕</span>
+                  </button>
+                ) : null}
+                {index === rules.length - 1 ? (
+                  <button
+                    type="button"
+                    class="icon-button"
+                    disabled={disabled}
+                    aria-label="Add rule"
+                    title="Add rule"
+                    onClick={addRule}
+                  >
+                    <span aria-hidden="true">+</span>
+                  </button>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>
