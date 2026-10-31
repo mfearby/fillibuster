@@ -28,7 +28,7 @@
  * Requirements: 2.1, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 8.6, 8.8
  */
 
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 import type { FieldStep, FillConfig } from '../core/schema';
 import { MessageType, type EncryptionStatus } from '../platform/messages';
@@ -92,6 +92,14 @@ export function ConfigEditor(props: ConfigEditorProps) {
   // Id of a just-added step that should scroll into view and focus its first
   // field when it mounts; cleared once that StepEditor consumes it.
   const [focusStepId, setFocusStepId] = useState<string | null>(null);
+  // Serialized copy of the config as it was opened/loaded, used to tell whether
+  // there are unsaved changes (Back asks before discarding them).
+  const [baseline, setBaseline] = useState<string | null>(
+    draft ? JSON.stringify(draft) : null,
+  );
+  // True while the inline "Discard unsaved changes?" confirmation is showing.
+  const [confirmingBack, setConfirmingBack] = useState(false);
+  const keepEditingRef = useRef<HTMLButtonElement>(null);
 
   /**
    * Load the stored config for editing (Req 6.2). The background decrypts an
@@ -109,6 +117,7 @@ export function ConfigEditor(props: ConfigEditorProps) {
     });
     if (result.ok) {
       setConfig(result.value);
+      setBaseline(JSON.stringify(result.value));
     } else if (result.code === 'locked') {
       setNeedsUnlock(true);
     } else {
@@ -157,6 +166,24 @@ export function ConfigEditor(props: ConfigEditorProps) {
   // Marking a config encrypted needs encryption enabled AND the session
   // unlocked (the background encrypts with the in-session key on save — Req 8.6).
   const canEncrypt = encStatus?.enabled === true && encStatus.unlocked === true;
+
+  const hasUnsavedChanges =
+    config !== null && baseline !== null && JSON.stringify(config) !== baseline;
+
+  // Focus "Keep editing" when the discard prompt opens. Unlike deleting one
+  // step, discarding loses every unsaved edit, so the safe choice is the default.
+  useEffect(() => {
+    if (confirmingBack) keepEditingRef.current?.focus();
+  }, [confirmingBack]);
+
+  /** Back: leave straight away if nothing changed, otherwise ask first. */
+  function requestBack() {
+    if (hasUnsavedChanges) {
+      setConfirmingBack(true);
+    } else {
+      onBack();
+    }
+  }
 
   function patch(next: Partial<FillConfig>) {
     setConfig((c) => (c ? { ...c, ...next } : c));
@@ -362,9 +389,29 @@ export function ConfigEditor(props: ConfigEditorProps) {
         <button class="primary" disabled={saving} onClick={save}>
           {saving ? 'Saving…' : 'Save'}
         </button>
-        <button disabled={saving} onClick={onBack}>
-          Back
-        </button>
+        {confirmingBack ? (
+          <span
+            class="confirm"
+            role="group"
+            aria-label="Confirm discarding unsaved changes"
+          >
+            <span class="confirm-text">Discard unsaved changes?</span>
+            <button class="danger" disabled={saving} onClick={onBack}>
+              Discard
+            </button>
+            <button
+              ref={keepEditingRef}
+              disabled={saving}
+              onClick={() => setConfirmingBack(false)}
+            >
+              Keep editing
+            </button>
+          </span>
+        ) : (
+          <button disabled={saving} onClick={requestBack}>
+            Back
+          </button>
+        )}
       </div>
     </section>
   );

@@ -291,6 +291,52 @@ describe('ConfigEditor (task 12.2)', () => {
     );
   });
 
+  it('goes back immediately when there are no unsaved changes', async () => {
+    const onBack = vi.fn();
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={onBack} />);
+    await screen.findByLabelText('Name');
+
+    fireEvent.click(screen.getByText('Back'));
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Discard unsaved changes?')).toBeNull();
+  });
+
+  it('asks before discarding unsaved changes, and Keep editing stays put', async () => {
+    const onBack = vi.fn();
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={onBack} />);
+    const name = (await screen.findByLabelText('Name')) as HTMLInputElement;
+
+    fireEvent.input(name, { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByText('Back'));
+
+    expect(screen.getByText('Discard unsaved changes?')).toBeTruthy();
+    expect(onBack).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByText('Keep editing')),
+    );
+
+    fireEvent.click(screen.getByText('Keep editing'));
+    expect(screen.queryByText('Discard unsaved changes?')).toBeNull();
+    expect(onBack).not.toHaveBeenCalled();
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Changed');
+  });
+
+  it('leaves without saving when the user confirms Discard', async () => {
+    const onBack = vi.fn();
+    render(<ConfigEditor draft={draft()} onSaved={noop} onBack={onBack} />);
+    const name = (await screen.findByLabelText('Name')) as HTMLInputElement;
+
+    fireEvent.input(name, { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByText('Back'));
+    fireEvent.click(screen.getByText('Discard'));
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(
+      sendUi.mock.calls.some(([m]) => (m as UiRequest).type === MessageType.SaveConfig),
+    ).toBe(false);
+  });
+
   it('focuses Delete when the delete confirmation appears', async () => {
     render(
       <ConfigEditor
